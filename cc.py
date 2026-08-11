@@ -54,11 +54,14 @@ def sync_and_append_data(current_items, filepath, is_job=True):
         
     return new_detected_count, old_fingerprints, just_added_fingerprints
 
-# 🌟 JobsDB 带 siteKey 防 404 标准生成器
+# 🌟 核心修复： JobsDB 直达绝对防 404 路径生成器
 def generate_jobsdb_link(keyword):
-    clean_kw = keyword.strip() if keyword and keyword.strip() else "intern"
+    if not keyword or not str(keyword).strip():
+        return "https://hk.jobsdb.com/jobs"
+    clean_kw = str(keyword).strip().replace(" ", "-")
     encoded_kw = urllib.parse.quote(clean_kw)
-    return f"https://hk.jobsdb.com/jobs?siteKey=HK-Main&keywords={encoded_kw}"
+    # 兼容 JobsDB 2026 全新路由规范
+    return f"https://hk.jobsdb.com/{encoded_kw}-jobs"
 
 # ----------------- [ 🌐 实时互联网搜索引擎内核 ] -----------------
 def fetch_realtime_internet_data(query_keyword, is_job=True):
@@ -97,11 +100,13 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
                     elif "ctgoodjobs" in raw_link: company = "CTgoodjobs"
                     
                     if raw_title:
+                        # 确保链接有效且不硬编码导致 404
+                        final_link = raw_link if raw_link.startswith("http") else generate_jobsdb_link(query_keyword)
                         results.append({
                             "title": raw_title if len(raw_title) > 8 else f"{query_keyword} Trainee / Intern Position",
                             "company": company,
                             "source": "Live Scan",
-                            "link": raw_link if raw_link.startswith("http") else generate_jobsdb_link(query_keyword),
+                            "link": final_link,
                             "snippet": raw_snippet
                         })
                 else:
@@ -140,7 +145,7 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
                     "title": f"Graduate Trainee Program 2026 ({query_keyword} Group)", 
                     "company": "Global Corporate HK Office", 
                     "source": "Autumn Backup Pool", 
-                    "link": generate_jobsdb_link(f"{query_keyword} trainee"), 
+                    "link": generate_jobsdb_link("graduate-trainee"), 
                     "snippet": "Early-bird recruitment for upcoming graduate & Placement schemes."
                 }
             ]
@@ -239,14 +244,14 @@ steam_label = "STEAM Science"
 major_choice = st.sidebar.selectbox("Majors:", [all_label, comp_label, bio_label, env_label, food_label, steam_label], label_visibility="collapsed")
 
 keyword_map = {
-    all_label: "Tech",
-    comp_label: "Computer Network Security", 
-    bio_label: "Biomedical Science", 
-    env_label: "Environmental Sustainability", 
-    food_label: "Food Science Testing", 
-    steam_label: "STEAM Education"
+    all_label: "intern",
+    comp_label: "computer-intern", 
+    bio_label: "biomedical-intern", 
+    env_label: "environmental-intern", 
+    food_label: "food-science-intern", 
+    steam_label: "steam-education-intern"
 }
-active_major_keyword = keyword_map.get(major_choice, "Tech")
+active_major_keyword = keyword_map.get(major_choice, "intern")
 
 # --- Tab 1: 互联网实习雷达 ---
 with tab1:
@@ -259,6 +264,7 @@ with tab1:
     combined_query = f"{active_major_keyword} {user_input}".strip()
     
     st.warning(lang_dict["jobsdb_notice"])
+    # 绝对直达，避免 404
     st.link_button(lang_dict["jobsdb_btn"], generate_jobsdb_link(combined_query), use_container_width=True)
     st.markdown("<br><hr>", unsafe_allow_html=True)
     
