@@ -18,7 +18,7 @@ def load_local_data(filepath):
             with open(filepath, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 return data if isinstance(data, list) else []
-        except:
+        except Exception:
             return []
     return []
 
@@ -54,11 +54,11 @@ def sync_and_append_data(current_items, filepath, is_job=True):
         
     return new_detected_count, old_fingerprints, just_added_fingerprints
 
-# 🌟 JobsDB 最新官方可用链接生成函数
+# 🌟 JobsDB 带 siteKey 防 404 标准生成器
 def generate_jobsdb_link(keyword):
-    clean_kw = keyword.strip() if keyword.strip() else "intern"
+    clean_kw = keyword.strip() if keyword and keyword.strip() else "intern"
     encoded_kw = urllib.parse.quote(clean_kw)
-    return f"https://hk.jobsdb.com/{encoded_kw}-jobs"
+    return f"https://hk.jobsdb.com/jobs?siteKey=HK-Main&keywords={encoded_kw}"
 
 # ----------------- [ 🌐 实时互联网搜索引擎内核 ] -----------------
 def fetch_realtime_internet_data(query_keyword, is_job=True):
@@ -259,7 +259,6 @@ with tab1:
     combined_query = f"{active_major_keyword} {user_input}".strip()
     
     st.warning(lang_dict["jobsdb_notice"])
-    # 🌟 修改后的直达超链接，杜绝 404
     st.link_button(lang_dict["jobsdb_btn"], generate_jobsdb_link(combined_query), use_container_width=True)
     st.markdown("<br><hr>", unsafe_allow_html=True)
     
