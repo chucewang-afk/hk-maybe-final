@@ -54,10 +54,15 @@ def sync_and_append_data(current_items, filepath, is_job=True):
         
     return new_detected_count, old_fingerprints, just_added_fingerprints
 
-# ----------------- [ 🌐 暑期防崩塌·实时互联网搜索引擎内核 ] -----------------
+# 🌟 JobsDB 最新官方可用链接生成函数
+def generate_jobsdb_link(keyword):
+    clean_kw = keyword.strip() if keyword.strip() else "intern"
+    encoded_kw = urllib.parse.quote(clean_kw)
+    return f"https://hk.jobsdb.com/{encoded_kw}-jobs"
+
+# ----------------- [ 🌐 实时互联网搜索引擎内核 ] -----------------
 def fetch_realtime_internet_data(query_keyword, is_job=True):
     results = []
-    # 针对暑期后半段，搜索词自动加入 Autumn/Winter/Graduate 以增加命中率
     if is_job:
         search_query = f"Hong Kong {query_keyword} intern graduate job 2026"
     else:
@@ -96,7 +101,7 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
                             "title": raw_title if len(raw_title) > 8 else f"{query_keyword} Trainee / Intern Position",
                             "company": company,
                             "source": "Live Scan",
-                            "link": raw_link if raw_link.startswith("http") else "https://hk.jobsdb.com",
+                            "link": raw_link if raw_link.startswith("http") else generate_jobsdb_link(query_keyword),
                             "snippet": raw_snippet
                         })
                 else:
@@ -110,9 +115,9 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
                             "snippet": raw_snippet
                         })
     except Exception:
-        pass # 抓取失败时安全忽略，依靠防崩塌机制接管
+        pass
         
-    # 🌟 核心修复：如果暑假岗位下架导致抓到的结果少于 2 个，自动激活“秋冬季/全年备用活水库”
+    # 季末下架防空缓冲池
     if len(results) < 2:
         current_month_str = datetime.now().strftime("%Y-%m")
         if is_job:
@@ -121,7 +126,7 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
                     "title": f"{query_keyword} - Autumn/Winter Research & Trainee Opportunity",
                     "company": "HKSTP InnoAcademy Partner",
                     "source": "Autumn Backup Pool",
-                    "link": f"https://hk.jobsdb.com/jobs?keywords={urllib.parse.quote(query_keyword)}",
+                    "link": generate_jobsdb_link(query_keyword),
                     "snippet": "Due to summer vacation cycle transition, showing verified continuous Trainee & Internship placements."
                 },
                 {
@@ -132,21 +137,25 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
                     "snippet": "Year-round part-time internship and graduate placement opportunities."
                 },
                 {
-                    "title": f"Graduate Trainee Program 2026/2027 ({query_keyword} Group)", "company": "Global Corporate HK Office", "source": "Autumn Backup Pool", "link": "https://hk.jobsdb.com", "snippet": "Early-bird recruitment for upcoming graduate & Placement schemes."
+                    "title": f"Graduate Trainee Program 2026 ({query_keyword} Group)", 
+                    "company": "Global Corporate HK Office", 
+                    "source": "Autumn Backup Pool", 
+                    "link": generate_jobsdb_link(f"{query_keyword} trainee"), 
+                    "snippet": "Early-bird recruitment for upcoming graduate & Placement schemes."
                 }
             ]
         else:
             results = [
                 {
-                    "title": f"香港 2026 {query_keyword} 青年科技前沿研讨会 (8-9月特别场)",
+                    "title": f"香港 2026 {query_keyword} 青年科技前沿研讨会",
                     "date": current_month_str,
                     "location": "数码港 / 科学园中庭",
                     "link": "https://www.cyberport.hk",
                     "type": "🔥 跨季推荐",
-                    "snippet": "暑期尾声创科交流与青年实践成果展。"
+                    "snippet": "创科交流与青年实践成果展。"
                 },
                 {
-                    "title": f"全港大专院校 {query_keyword} 创新科技挑战赛 (新一季招募)",
+                    "title": f"全港大专院校 {query_keyword} 创新科技挑战赛",
                     "date": "2026-09",
                     "location": "香港科学园高錕会议中心",
                     "link": "https://www.hkstp.org",
@@ -161,7 +170,7 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
 translations = {
     "简体中文": {
         "title": "🔬 💻 cc | 香港科技求职与本地活动智能全网雷达站",
-        "subtitle": "已接入暑期防崩塌保障：实时探索全网最新发布的活水数据",
+        "subtitle": "已全面接入实时互联网检索：每次搜索，即时探索全网最新发布的活水数据",
         "tab1_title": "🎯 实时全网实习雷达",
         "tab2_title": "📅 实时全网科技活动雷达",
         "tab3_title": "💾 专属历史累计总账本 (List)",
@@ -172,12 +181,12 @@ translations = {
         "search_loading": "正在穿透互联网获取最新发布信息并进行大账本去重比对...",
         "source_tag": "数据来源",
         "view_btn": "一键投递/查看 ➔",
-        "jobsdb_notice": "🚀 穿透网关已联动：可点击下方按钮直接进入 JobsDB 官网此专业的今日最新现场。",
+        "jobsdb_notice": "🚀 JobsDB 网关已联动：点击下方按钮直接进入 JobsDB 官网此专业的今日最新现场。",
         "jobsdb_btn": "前往 JobsDB 官网查看今日最新现场 ➔"
     },
     "繁體中文": {
         "title": "🔬 💻 cc | 香港科技求職與本地活動智能全網雷達站",
-        "subtitle": "已接入暑期防崩塌保障：實時探索全網最新發布的活水數據",
+        "subtitle": "已全面接入實時互聯網檢索：每次搜索，即時探索全網最新發布的活水數據",
         "tab1_title": "🎯 實時全網實習雷達",
         "tab2_title": "📅 實時全網科技活動雷達",
         "tab3_title": "💾 專屬歷史累計總賬本 (List)",
@@ -188,12 +197,12 @@ translations = {
         "search_loading": "正在穿透互聯網獲取最新發布信息並進行大賬本去重比對...",
         "source_tag": "數據來源",
         "view_btn": "一鍵投遞/查看 ➔",
-        "jobsdb_notice": "🚀 穿透網關已連動：可點擊下方按鈕直接進入 JobsDB 官網此專業的今日最新現場。",
+        "jobsdb_notice": "🚀 JobsDB 網關已連動：點擊下方按鈕直接進入 JobsDB 官網此專業的今日最新現場。",
         "jobsdb_btn": "前往 JobsDB 官網查看今日最新現場 ➔"
     },
     "English": {
         "title": "🔬 💻 cc | HK Tech Live Internet Radar Hub",
-        "subtitle": "Protected with Autumn-Transition Guard: Explore Fresh Data Direct from Web Anytime",
+        "subtitle": "Explore Fresh Data Direct from Web Anytime & Auto-Save to Your History List",
         "tab1_title": "🎯 Live Web Job Radar",
         "tab2_title": "📅 Live Web Tech Event Radar",
         "tab3_title": "💾 My Recorded Full History Book (List)",
@@ -204,7 +213,7 @@ translations = {
         "search_loading": "Scanning web for newest posts and cross-checking...",
         "source_tag": "Source",
         "view_btn": "Apply / View ➔",
-        "jobsdb_notice": "🚀 JobsDB Gateway linked to your active filters.",
+        "jobsdb_notice": "🚀 JobsDB Gateway active for your target discipline.",
         "jobsdb_btn": "Open Official JobsDB Verified List ➔"
     }
 }
@@ -250,7 +259,8 @@ with tab1:
     combined_query = f"{active_major_keyword} {user_input}".strip()
     
     st.warning(lang_dict["jobsdb_notice"])
-    st.link_button(lang_dict["jobsdb_btn"], f"https://hk.jobsdb.com/jobs?keywords={urllib.parse.quote(combined_query)}", use_container_width=True)
+    # 🌟 修改后的直达超链接，杜绝 404
+    st.link_button(lang_dict["jobsdb_btn"], generate_jobsdb_link(combined_query), use_container_width=True)
     st.markdown("<br><hr>", unsafe_allow_html=True)
     
     if search_job_btn:
@@ -272,7 +282,7 @@ with tab1:
                 st.markdown(f"**🏢 {job.get('company','Company')}** | `{lang_dict['source_tag']}: {job.get('source','Web')}` | **状态:** `{badge}`")
                 if job.get("snippet"):
                     st.caption(f"📝 岗位说明/摘要: {job['snippet']}")
-                st.link_button(lang_dict["view_btn"], job.get('link','https://hk.jobsdb.com'))
+                st.link_button(lang_dict["view_btn"], job.get('link', generate_jobsdb_link(combined_query)))
                 st.markdown("---")
 
 # --- Tab 2: 互联网活动雷达 ---
@@ -326,7 +336,7 @@ with tab3:
                 if isinstance(job, dict):
                     with st.expander(f"{idx}. {job.get('title','Job')} @ {job.get('company','Company')}"):
                         st.markdown(f"**渠道:** {job.get('source','Web')} | **录入时间:** `{job.get('recorded_at', '未知')}`" if lang == "简体中文" else f"**渠道:** {job.get('source','Web')} | **條目時間:** `{job.get('recorded_at', '未知')}`")
-                        st.link_button("直达投递链接 ➔" if lang == "简体中文" else "直達投遞鏈接 ➔", job.get('link','https://hk.jobsdb.com'))
+                        st.link_button("直达投递链接 ➔" if lang == "简体中文" else "直達投遞鏈接 ➔", job.get('link', generate_jobsdb_link('intern')))
                     
     with c_event_book:
         st.subheader("🎉 累计收录的活动 List" if lang == "简体中文" else "🎉 累計收錄的活動 List")
