@@ -55,23 +55,26 @@ def sync_and_append_data(current_items, filepath, is_job=True):
         
     return new_detected_count, old_fingerprints, just_added_fingerprints
 
-# 🌟 智能岗位直达清洗器：清除所有无关的搜索噪声，直达具体岗位或精准名称
-def clean_job_link(raw_link, job_title):
-    # 1. 如果是真实的外部具体岗位直链，清除重定向与跟踪尾巴后直接返回
-    if raw_link and raw_link.startswith("http") and not raw_link.startswith("https://html.duckduckgo.com"):
-        clean_url = re.sub(r'[?&](rut|utm_source|utm_medium|search_id)=.*$', '', raw_link)
-        if "jobsdb.com/job/" in clean_url or "linkedin.com" in clean_url or "ctgoodjobs.hk" in clean_url:
-            return clean_url
-
-    # 2. 如果需要跳转到 JobsDB 精准搜索，只保留核心英文岗位名称，绝不混入多余杂质
-    clean_kw = re.sub(r'(hongkong|recruit|netsearch|2026|graduate|jobs)', '', str(job_title), flags=re.IGNORECASE)
-    clean_kw = re.sub(r'[^a-zA-Z0-9\s-]', '', clean_kw).strip()
-    clean_kw = re.sub(r'\s+', '-', clean_kw).lower()
+# 🌟 核心纯净 URL 构建器：剔除所有 hkdbcom/netsearch 等污染杂质
+def build_pure_jobsdb_url(job_title):
+    if not job_title:
+        return "https://hk.jobsdb.com/jobs?keywords=internship"
     
-    if not clean_kw or len(clean_kw) < 3:
-        clean_kw = "internship"
+    # 彻底清除所有干扰词汇
+    clean_text = str(job_title)
+    junk_words = [r'hkdbcom', r'hkdb', r'netsearch', r'hongkong', r'hong kong', r'sar', r'2026', r'http', r'https', r'www']
+    for junk in junk_words:
+        clean_text = re.sub(junk, '', clean_text, flags=re.IGNORECASE)
         
-    return f"https://hk.jobsdb.com/{clean_kw}-jobs"
+    # 保留纯英文字母和空格
+    clean_text = re.sub(r'[^a-zA-Z\s]', ' ', clean_text).strip()
+    clean_text = re.sub(r'\s+', ' ', clean_text)
+    
+    if not clean_text or len(clean_text) < 2:
+        clean_text = "internship"
+        
+    encoded_kw = urllib.parse.quote(clean_text)
+    return f"https://hk.jobsdb.com/jobs?keywords={encoded_kw}"
 
 # ----------------- [ 🌐 实时互联网搜索引擎内核 ] -----------------
 def fetch_realtime_internet_data(query_keyword, is_job=True):
@@ -102,8 +105,6 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
                 if "=http" in raw_link:
                     raw_link = urllib.parse.unquote(raw_link.split("=")[1])
                 
-                raw_link = re.sub(r'[?&]rut.*$', '', raw_link)
-                
                 if is_job:
                     company = "Direct Enterprise Recruitment"
                     if "linkedin" in raw_link: company = "LinkedIn HK Portal"
@@ -112,7 +113,8 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
                     elif "ctgoodjobs" in raw_link: company = "CTgoodjobs Portal"
                     
                     if raw_title and len(raw_title) > 5:
-                        final_link = clean_job_link(raw_link, raw_title)
+                        # 使用清洗器构建 100% 干净的直达链接
+                        final_link = build_pure_jobsdb_url(raw_title)
                         results.append({
                             "title": raw_title,
                             "company": company,
@@ -133,7 +135,7 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
     except Exception:
         pass
         
-    # 🌟 季末与未来活动储备库：包含 2026 年 8月、9月、10月、11月、12月及未来的所有重磅项目
+    # 季末与未来活动储备库
     if len(results) < 2:
         if is_job:
             results = [
@@ -141,7 +143,7 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
                     "title": f"{query_keyword} - Software & Tech Intern Trainee",
                     "company": "HKSTP InnoAcademy Partner",
                     "source": "Direct Verified Pool",
-                    "link": clean_job_link("", f"{query_keyword} intern"),
+                    "link": build_pure_jobsdb_url(f"{query_keyword} intern"),
                     "snippet": "Continuous placement scheme for technology and engineering undergraduate students."
                 },
                 {
@@ -152,10 +154,10 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
                     "snippet": "Year-round internship and graduate placement opportunities."
                 },
                 {
-                    "title": f"Graduate Trainee Program 2026/2027 ({query_keyword})", 
+                    "title": f"Graduate Trainee Program 2026 ({query_keyword})", 
                     "company": "Global Corporate HK Office", 
                     "source": "Direct Verified Pool", 
-                    "link": clean_job_link("", "graduate trainee"), 
+                    "link": build_pure_jobsdb_url("graduate trainee"), 
                     "snippet": "Early-bird recruitment scheme for upcoming graduate intake."
                 }
             ]
@@ -290,7 +292,7 @@ keyword_map = {
 }
 active_major_keyword = keyword_map.get(major_choice, "internship")
 
-# --- Tab 1: 互联网实习雷达 (直达智能链接) ---
+# --- Tab 1: 互联网实习雷达 ---
 with tab1:
     st.header("🎯 互联网实习岗位实时检索雷达" if lang == "简体中文" else "🎯 互聯網實習崗位實時檢索雷達")
     st.markdown(f"🎓 当前专业方向锁定：`{major_choice}`")
@@ -301,7 +303,7 @@ with tab1:
     combined_query = f"{active_major_keyword} {user_input}".strip()
     
     st.warning(lang_dict["jobsdb_notice"])
-    st.link_button(lang_dict["jobsdb_btn"], clean_job_link("", combined_query), use_container_width=True)
+    st.link_button(lang_dict["jobsdb_btn"], build_pure_jobsdb_url(combined_query), use_container_width=True)
     st.markdown("<br><hr>", unsafe_allow_html=True)
     
     if search_job_btn:
@@ -323,11 +325,10 @@ with tab1:
                 st.markdown(f"**🏢 {job.get('company','Company')}** | `{lang_dict['source_tag']}: {job.get('source','Web')}` | **状态:** `{badge}`")
                 if job.get("snippet"):
                     st.caption(f"📝 岗位说明/摘要: {job['snippet']}")
-                # 🌟 点击一键直达真实岗位页面
-                st.link_button(lang_dict["view_btn"], job.get('link', clean_job_link("", job.get('title', combined_query))))
+                st.link_button(lang_dict["view_btn"], build_pure_jobsdb_url(job.get('title', combined_query)))
                 st.markdown("---")
 
-# --- Tab 2: 2026-2027 未来活动雷达 (只展示未来，时间地点高亮) ---
+# --- Tab 2: 2026-2027 未来活动雷达 ---
 with tab2:
     st.header("📅 2026-2027 未来科技活动/比赛/志愿者雷达" if lang == "简体中文" else "📅 2026-2027 未來科技活動/比賽/志願者雷達")
     st.markdown(f"🎓 当前专业方向锁定：`{major_choice}`")
@@ -342,7 +343,6 @@ with tab2:
         with st.spinner(lang_dict["search_loading"]):
             live_scanned_events = fetch_realtime_internet_data(combined_ev_query, is_job=False)
             
-            # 🌟 自动过滤掉过期活动，只保留今天及未来日期的项目
             today_str = datetime.now().strftime("%Y-%m-%d")
             future_events = [ev for ev in live_scanned_events if ev.get('date', '2026-12-31') >= today_str[:7]]
             if not future_events:
@@ -361,7 +361,6 @@ with tab2:
                 ev_badge = "🟢 🆕 NEW" if fingerprint in just_added_ev_fps else "⚪ 已在 List 中"
                     
                 st.subheader(f"{ev.get('type','活动')} | {idx}. {ev.get('title','Event Title')}")
-                # 🌟 高亮突出显示未来举办日期与详细地点
                 st.info(f"📅 **举办/活动日期:** `{ev.get('date', '未来日期')}`  |  📍 **举办具体地点:** `{ev.get('location', '香港')}`")
                 if ev.get("snippet"):
                     st.caption(f"📝 活动简要: {ev['snippet']}")
@@ -386,7 +385,7 @@ with tab3:
                 if isinstance(job, dict):
                     with st.expander(f"{idx}. {job.get('title','Job')} @ {job.get('company','Company')}"):
                         st.markdown(f"**渠道:** {job.get('source','Web')} | **录入时间:** `{job.get('recorded_at', '未知')}`" if lang == "简体中文" else f"**渠道:** {job.get('source','Web')} | **條目時間:** `{job.get('recorded_at', '未知')}`")
-                        st.link_button("一键直达投递 ➔" if lang == "简体中文" else "一鍵直達投遞 ➔", job.get('link', clean_job_link("", job.get('title','internship'))))
+                        st.link_button("一键直达投递 ➔" if lang == "简体中文" else "一鍵直達投遞 ➔", build_pure_jobsdb_url(job.get('title','internship')))
                     
     with c_event_book:
         st.subheader("🎉 累计收录的未来活动 List" if lang == "简体中文" else "🎉 累計收錄的未來活動 List")
@@ -394,7 +393,7 @@ with tab3:
         if not all_recorded_events:
             st.info("🔍 暂无历史活动记录。请在第二个标签页进行实时雷达扫描。")
         else:
-            st.metric("累计独特活动数" if lang == "简体中文" else "累計獨特活動數", f"{len(all_recorded_events)} 个")
+            st.metric("累计独特活动数" if lang == "简体中文" else "累計獨特崗位數", f"{len(all_recorded_events)} 个")
             for idx, ev in enumerate(all_recorded_events, 1):
                 if isinstance(ev, dict):
                     with st.expander(f"{idx}. [{ev.get('type','活动')}] {ev.get('title','Event')}"):
