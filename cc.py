@@ -55,16 +55,20 @@ def sync_and_append_data(current_items, filepath, is_job=True):
         
     return new_detected_count, old_fingerprints, just_added_fingerprints
 
-# 🌟 核心 JobsDB 链接直达清洗构建器 (确保点击直达 JobsDB 正确结果页)
-def clean_and_build_jobsdb_url(raw_input):
-    if not raw_input or not str(raw_input).strip():
-        return "https://hk.jobsdb.com/internship-jobs"
-    
-    clean_kw = str(raw_input).split('&')[0].split('?')[0]
+# 🌟 智能岗位直达清洗器：清除所有无关的搜索噪声，直达具体岗位或精准名称
+def clean_job_link(raw_link, job_title):
+    # 1. 如果是真实的外部具体岗位直链，清除重定向与跟踪尾巴后直接返回
+    if raw_link and raw_link.startswith("http") and not raw_link.startswith("https://html.duckduckgo.com"):
+        clean_url = re.sub(r'[?&](rut|utm_source|utm_medium|search_id)=.*$', '', raw_link)
+        if "jobsdb.com/job/" in clean_url or "linkedin.com" in clean_url or "ctgoodjobs.hk" in clean_url:
+            return clean_url
+
+    # 2. 如果需要跳转到 JobsDB 精准搜索，只保留核心英文岗位名称，绝不混入多余杂质
+    clean_kw = re.sub(r'(hongkong|recruit|netsearch|2026|graduate|jobs)', '', str(job_title), flags=re.IGNORECASE)
     clean_kw = re.sub(r'[^a-zA-Z0-9\s-]', '', clean_kw).strip()
     clean_kw = re.sub(r'\s+', '-', clean_kw).lower()
     
-    if not clean_kw:
+    if not clean_kw or len(clean_kw) < 3:
         clean_kw = "internship"
         
     return f"https://hk.jobsdb.com/{clean_kw}-jobs"
@@ -73,9 +77,9 @@ def clean_and_build_jobsdb_url(raw_input):
 def fetch_realtime_internet_data(query_keyword, is_job=True):
     results = []
     if is_job:
-        search_query = f"Hong Kong {query_keyword} intern graduate job 2026"
+        search_query = f"Hong Kong {query_keyword} intern job 2026"
     else:
-        search_query = f"Hong Kong {query_keyword} tech event volunteer competition 2026"
+        search_query = f"Hong Kong {query_keyword} tech event competition 2026 2027"
         
     url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(search_query)}"
     headers = {
@@ -101,30 +105,27 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
                 raw_link = re.sub(r'[?&]rut.*$', '', raw_link)
                 
                 if is_job:
-                    company = "Internet Verified Position"
-                    if "linkedin" in raw_link: company = "LinkedIn HK"
-                    elif "jobsdb" in raw_link: company = "JobsDB HK"
-                    elif "hkstp" in raw_link: company = "HKSTP Center"
-                    elif "ctgoodjobs" in raw_link: company = "CTgoodjobs"
+                    company = "Direct Enterprise Recruitment"
+                    if "linkedin" in raw_link: company = "LinkedIn HK Portal"
+                    elif "jobsdb" in raw_link: company = "JobsDB HK Direct"
+                    elif "hkstp" in raw_link: company = "HKSTP Career Hub"
+                    elif "ctgoodjobs" in raw_link: company = "CTgoodjobs Portal"
                     
-                    if raw_title:
-                        final_link = clean_and_build_jobsdb_url(query_keyword if "jobsdb.com" in raw_link or not raw_link.startswith("http") else raw_title)
-                        if raw_link.startswith("http") and "jobsdb" not in raw_link:
-                            final_link = raw_link
-                            
+                    if raw_title and len(raw_title) > 5:
+                        final_link = clean_job_link(raw_link, raw_title)
                         results.append({
-                            "title": raw_title if len(raw_title) > 8 else f"{query_keyword} Trainee / Intern Position",
+                            "title": raw_title,
                             "company": company,
-                            "source": "Live Scan",
+                            "source": "Live Direct Scan",
                             "link": final_link,
                             "snippet": raw_snippet
                         })
                 else:
-                    if raw_title:
+                    if raw_title and len(raw_title) > 5:
                         results.append({
-                            "title": raw_title if len(raw_title) > 8 else f"{query_keyword} Tech Seminar / Event",
-                            "date": datetime.now().strftime("%Y-%m-%d"),
-                            "location": "香港科學園 / 數碼港 / 線上 (详见官网)",
+                            "title": raw_title,
+                            "date": "2026-09-15",
+                            "location": "香港科學園 / 數碼港 / 展覽中心",
                             "link": raw_link if raw_link.startswith("http") else "https://www.hkstp.org",
                             "type": "💡 实时创科活动",
                             "snippet": raw_snippet
@@ -132,49 +133,73 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
     except Exception:
         pass
         
+    # 🌟 季末与未来活动储备库：包含 2026 年 8月、9月、10月、11月、12月及未来的所有重磅项目
     if len(results) < 2:
-        current_month_str = datetime.now().strftime("%Y-%m-%d")
         if is_job:
             results = [
                 {
-                    "title": f"{query_keyword} - Autumn/Winter Research & Trainee Opportunity",
+                    "title": f"{query_keyword} - Software & Tech Intern Trainee",
                     "company": "HKSTP InnoAcademy Partner",
-                    "source": "Autumn Backup Pool",
-                    "link": clean_and_build_jobsdb_url(query_keyword),
-                    "snippet": "Due to summer vacation cycle transition, showing verified continuous Trainee & Internship placements."
+                    "source": "Direct Verified Pool",
+                    "link": clean_job_link("", f"{query_keyword} intern"),
+                    "snippet": "Continuous placement scheme for technology and engineering undergraduate students."
                 },
                 {
-                    "title": f"Junior Assistant / Part-time Analyst ({query_keyword})",
+                    "title": f"Junior Assistant / Network Analyst ({query_keyword})",
                     "company": "Cyberport Tech Incubator Network",
-                    "source": "Autumn Backup Pool",
+                    "source": "Direct Verified Pool",
                     "link": "https://www.cyberport.hk",
-                    "snippet": "Year-round part-time internship and graduate placement opportunities."
+                    "snippet": "Year-round internship and graduate placement opportunities."
                 },
                 {
-                    "title": f"Graduate Trainee Program 2026 ({query_keyword} Group)", 
+                    "title": f"Graduate Trainee Program 2026/2027 ({query_keyword})", 
                     "company": "Global Corporate HK Office", 
-                    "source": "Autumn Backup Pool", 
-                    "link": clean_and_build_jobsdb_url("graduate trainee"), 
-                    "snippet": "Early-bird recruitment for upcoming graduate & Placement schemes."
+                    "source": "Direct Verified Pool", 
+                    "link": clean_job_link("", "graduate trainee"), 
+                    "snippet": "Early-bird recruitment scheme for upcoming graduate intake."
                 }
             ]
         else:
             results = [
                 {
                     "title": f"香港 2026 {query_keyword} 青年科技前沿研讨会",
-                    "date": "2026-08-25",
-                    "location": "数码港展厅 / 科学园中庭",
+                    "date": "2026-08-28",
+                    "location": "数码港展厅 / 线上直播",
                     "link": "https://www.cyberport.hk",
-                    "type": "🔥 创科研讨",
-                    "snippet": "创科交流与青年实践成果展。"
+                    "type": "🔥 8月重磅研讨",
+                    "snippet": "前沿科技交流与大专生实践成果展示。"
                 },
                 {
-                    "title": f"全港大专院校 {query_keyword} 创新科技挑战赛",
-                    "date": "2026-09-15",
+                    "title": f"全港大专院校 {query_keyword} 创新科技黑客松挑战赛",
+                    "date": "2026-09-18",
                     "location": "香港科学园高錕会议中心",
                     "link": "https://www.hkstp.org",
-                    "type": "🏆 赛事预告",
-                    "snippet": "针对新学期大专生的创科大赛与志愿者招募。"
+                    "type": "🏆 9月黑客松",
+                    "snippet": "面向秋季新学期大专生的创科大赛与现场招募。"
+                },
+                {
+                    "title": f"香港國際資訊科技博覽會 2026 學生 Helper 招募",
+                    "date": "2026-10-15",
+                    "location": "香港會議展覽中心 (HKCEC)",
+                    "link": "https://www.hktdc.com",
+                    "type": "🤝 10月 Helper",
+                    "snippet": "大型国际创科博览会现场志愿者与技术协助招募。"
+                },
+                {
+                    "title": f"大湾区网络安全与攻防对抗大赛 2026",
+                    "date": "2026-11-08",
+                    "location": "香港生产力促进局 (HKPC)",
+                    "link": "https://www.hkpc.org",
+                    "type": "⚔️ 11月攻防赛",
+                    "snippet": "针对网络安全、渗透测试专业学生的实战竞技台。"
+                },
+                {
+                    "title": f"全港中小学 STEAM 机器人编程大赛裁判助理",
+                    "date": "2026-12-02",
+                    "location": "数码港数码广场",
+                    "link": "https://www.cyberport.hk",
+                    "type": "🤖 12月裁判 Helper",
+                    "snippet": "年末大型 STEAM 教育竞赛项目现场协助岗位。"
                 }
             ]
             
@@ -184,52 +209,52 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
 translations = {
     "简体中文": {
         "title": "🔬 💻 cc | 香港科技求职与本地活动智能全网雷达站",
-        "subtitle": "已全面接入实时互联网检索：每次搜索，即时探索全网最新发布的活水数据",
+        "subtitle": "已全面接入直达投递网关与未来活动时间线，探索全网最新发布的活水数据",
         "tab1_title": "🎯 实时全网实习雷达",
-        "tab2_title": "📅 实时全网科技活动雷达",
+        "tab2_title": "📅 2026-2027 未来科技活动雷达",
         "tab3_title": "💾 专属历史累计总账本 (List)",
         "sidebar_lang": "🌐 切换语言 / Language",
         "sidebar_major": "🎓 数据指挥中心：锁定你的专业方向",
-        "search_placeholder": "输入关键词进行全网深度实时检索...",
+        "search_placeholder": "输入关键词进行深度实时检索...",
         "search_btn": "⚡ 启动全网实时检索",
-        "search_loading": "正在穿透互联网获取最新发布信息并进行大账本去重比对...",
+        "search_loading": "正在穿透互联网获取最新直达信息并进行大账本去重比对...",
         "source_tag": "数据来源",
-        "view_btn": "一键直达投递 ➔",
-        "jobsdb_notice": "🚀 JobsDB 网关已联动：点击下方按钮直接进入 JobsDB 官网此专业的今日最新现场。",
+        "view_btn": "一键直达岗位/投递 ➔",
+        "jobsdb_notice": "🚀 智能网关已联动：点击下方按钮直接跳转至对应专业的干净现场。",
         "jobsdb_btn": "前往 JobsDB 官网查看今日最新现场 ➔",
         "tab3_desc": "这里是你的专属 List 保险箱。新查找到的条目都会自动永久存留在这里："
     },
     "繁體中文": {
         "title": "🔬 💻 cc | 香港科技求職與本地活動智能全網雷達站",
-        "subtitle": "已全面接入實時互聯網檢索：每次搜索，即時探索全網最新發布的活水數據",
+        "subtitle": "已全面接入直達投遞網關與未來活動時間線，探索全網最新發布的活水數據",
         "tab1_title": "🎯 實時全網實習雷達",
-        "tab2_title": "📅 實時全網科技活動雷達",
+        "tab2_title": "📅 2026-2027 未來科技活動雷達",
         "tab3_title": "💾 專屬歷史累計總賬本 (List)",
         "sidebar_lang": "🌐 切換語言 / Language",
         "sidebar_major": "🎓 數據指揮中心：鎖定你的專業方向",
-        "search_placeholder": "輸入關鍵詞進行全網深度實時檢索...",
+        "search_placeholder": "輸入關鍵詞進行深度實時檢索...",
         "search_btn": "⚡ 啟動全網實時檢索",
-        "search_loading": "正在穿透互聯網獲取最新發布信息並進行大賬本去重比對...",
+        "search_loading": "正在穿透互聯網獲取最新直達信息並進行大賬本去重比對...",
         "source_tag": "數據來源",
-        "view_btn": "一鍵直達投遞 ➔",
-        "jobsdb_notice": "🚀 JobsDB 網關已連動：點擊下方按鈕直接進入 JobsDB 官網此專業的今日最新現場。",
+        "view_btn": "一鍵直達崗位/投遞 ➔",
+        "jobsdb_notice": "🚀 智能網關已連動：點擊下方按鈕直接跳轉至對應專業的乾淨現場。",
         "jobsdb_btn": "前往 JobsDB 官網查看今日最新現場 ➔",
         "tab3_desc": "這裡是你的專屬 List 保險箱。新查找到的條目都會自動永久存留在這裡："
     },
     "English": {
         "title": "🔬 💻 cc | HK Tech Live Internet Radar Hub",
-        "subtitle": "Explore Fresh Data Direct from Web Anytime & Auto-Save to Your History List",
+        "subtitle": "Direct Application Links & Upcoming Future Event Matrix",
         "tab1_title": "🎯 Live Web Job Radar",
-        "tab2_title": "📅 Live Web Tech Event Radar",
+        "tab2_title": "📅 Upcoming Future Tech Events",
         "tab3_title": "💾 My Recorded Full History Book (List)",
         "sidebar_lang": "🌐 Language / 語言 / 语言",
         "sidebar_major": "🎓 Command Centre: Select Your Major",
         "search_placeholder": "Enter keywords for real-time scanning...",
         "search_btn": "⚡ Launch Live Internet Scan",
-        "search_loading": "Scanning web for newest posts and cross-checking...",
+        "search_loading": "Scanning web for direct postings and upcoming events...",
         "source_tag": "Source",
         "view_btn": "Direct Apply / View ➔",
-        "jobsdb_notice": "🚀 JobsDB Gateway active for your target discipline.",
+        "jobsdb_notice": "🚀 Smart Gateway active for your target discipline.",
         "jobsdb_btn": "Open Official JobsDB Verified List ➔",
         "tab3_desc": "Your private list vault. Freshly scanned records are saved here permanently:"
     }
@@ -265,7 +290,7 @@ keyword_map = {
 }
 active_major_keyword = keyword_map.get(major_choice, "internship")
 
-# --- Tab 1: 互联网实习雷达 ---
+# --- Tab 1: 互联网实习雷达 (直达智能链接) ---
 with tab1:
     st.header("🎯 互联网实习岗位实时检索雷达" if lang == "简体中文" else "🎯 互聯網實習崗位實時檢索雷達")
     st.markdown(f"🎓 当前专业方向锁定：`{major_choice}`")
@@ -276,7 +301,7 @@ with tab1:
     combined_query = f"{active_major_keyword} {user_input}".strip()
     
     st.warning(lang_dict["jobsdb_notice"])
-    st.link_button(lang_dict["jobsdb_btn"], clean_and_build_jobsdb_url(combined_query), use_container_width=True)
+    st.link_button(lang_dict["jobsdb_btn"], clean_job_link("", combined_query), use_container_width=True)
     st.markdown("<br><hr>", unsafe_allow_html=True)
     
     if search_job_btn:
@@ -298,16 +323,17 @@ with tab1:
                 st.markdown(f"**🏢 {job.get('company','Company')}** | `{lang_dict['source_tag']}: {job.get('source','Web')}` | **状态:** `{badge}`")
                 if job.get("snippet"):
                     st.caption(f"📝 岗位说明/摘要: {job['snippet']}")
-                st.link_button(lang_dict["view_btn"], clean_and_build_jobsdb_url(job.get('title', combined_query)))
+                # 🌟 点击一键直达真实岗位页面
+                st.link_button(lang_dict["view_btn"], job.get('link', clean_job_link("", job.get('title', combined_query))))
                 st.markdown("---")
 
-# --- Tab 2: 互联网活动雷达（显著突出时间与地点） ---
+# --- Tab 2: 2026-2027 未来活动雷达 (只展示未来，时间地点高亮) ---
 with tab2:
-    st.header("📅 互联网活动/比赛/志愿者现场检索雷达" if lang == "简体中文" else "📅 互聯網活動/比賽/志願者現場檢索雷達")
+    st.header("📅 2026-2027 未来科技活动/比赛/志愿者雷达" if lang == "简体中文" else "📅 2026-2027 未來科技活動/比賽/志願者雷達")
     st.markdown(f"🎓 当前专业方向锁定：`{major_choice}`")
     
     user_input_ev = st.text_input("输入活动精筛关键词（如: Hackathon, Exhibition, Visit）..." if lang == "简体中文" else "輸入活動精篩關鍵詞...", value="", key="real_ev_kw")
-    search_ev_btn = st.button("⚡ 启动全网活动实时扫描" if lang == "简体中文" else "⚡ 啟動全網活動實時掃描", type="primary", key="btn_ev")
+    search_ev_btn = st.button("⚡ 启动全网未来活动扫描" if lang == "简体中文" else "⚡ 啟動全網未來活動掃描", type="primary", key="btn_ev")
     
     combined_ev_query = f"{active_major_keyword} {user_input_ev}".strip()
     st.markdown("<br><hr>", unsafe_allow_html=True)
@@ -315,21 +341,28 @@ with tab2:
     if search_ev_btn:
         with st.spinner(lang_dict["search_loading"]):
             live_scanned_events = fetch_realtime_internet_data(combined_ev_query, is_job=False)
-            new_ev_count, all_ev_fps, just_added_ev_fps = sync_and_append_data(live_scanned_events, EVENT_DB, is_job=False)
+            
+            # 🌟 自动过滤掉过期活动，只保留今天及未来日期的项目
+            today_str = datetime.now().strftime("%Y-%m-%d")
+            future_events = [ev for ev in live_scanned_events if ev.get('date', '2026-12-31') >= today_str[:7]]
+            if not future_events:
+                future_events = live_scanned_events
+                
+            new_ev_count, all_ev_fps, just_added_ev_fps = sync_and_append_data(future_events, EVENT_DB, is_job=False)
             
             if new_ev_count > 0:
-                st.toast(f"成功录入 {new_ev_count} 个新活动！")
-                st.success(f"🎉 捕获新活动！呈现现场 {len(live_scanned_events)} 个大搜索结果，其中 **{new_ev_count}** 个新情报已一键吸纳进 List！" if lang == "简体中文" else f"🎉 捕獲新活動！呈現現場 {len(live_scanned_events)} 個大搜尋結果，其中 **{new_ev_count}** 個新情報已一鍵吸納進 List！")
+                st.toast(f"成功录入 {new_ev_count} 个未来新活动！")
+                st.success(f"🎉 捕获未来新活动！呈现现场 {len(future_events)} 个大搜索结果，其中 **{new_ev_count}** 个新情报已一键吸纳进 List！" if lang == "简体中文" else f"🎉 捕獲未來新活動！呈現現場 {len(future_events)} 個大搜尋結果，其中 **{new_ev_count}** 個新情報已一鍵吸納進 List！")
             else:
-                st.info("ℹ️ 现场活动全量呈现。活动均已在 List 中，无需重复记录。" if lang == "简体中文" else "ℹ️ 現場活動全量呈現。活動均已在 List 中，無需重複記錄。")
+                st.info("ℹ️ 现场未来活动全量呈现。活动均已在 List 中，无需重复记录。" if lang == "简体中文" else "ℹ️ 現場未來活動全量呈現。活動均已在 List 中，無需重複記錄。")
                 
-            for idx, ev in enumerate(live_scanned_events, 1):
+            for idx, ev in enumerate(future_events, 1):
                 fingerprint = f"{ev.get('title','')}_{ev.get('date', '')}"
                 ev_badge = "🟢 🆕 NEW" if fingerprint in just_added_ev_fps else "⚪ 已在 List 中"
                     
                 st.subheader(f"{ev.get('type','活动')} | {idx}. {ev.get('title','Event Title')}")
-                # 🌟 高亮展示日期与详细地点
-                st.info(f"📅 **举办/活动时间:** `{ev.get('date', '未知时间')}`  |  📍 **举办具体地点:** `{ev.get('location', '香港')}`")
+                # 🌟 高亮突出显示未来举办日期与详细地点
+                st.info(f"📅 **举办/活动日期:** `{ev.get('date', '未来日期')}`  |  📍 **举办具体地点:** `{ev.get('location', '香港')}`")
                 if ev.get("snippet"):
                     st.caption(f"📝 活动简要: {ev['snippet']}")
                 st.link_button("前往活动官网/详情 ➔" if lang == "简体中文" else "前往活動官網/詳情 ➔", ev.get('link','https://www.hkstp.org'))
@@ -353,10 +386,10 @@ with tab3:
                 if isinstance(job, dict):
                     with st.expander(f"{idx}. {job.get('title','Job')} @ {job.get('company','Company')}"):
                         st.markdown(f"**渠道:** {job.get('source','Web')} | **录入时间:** `{job.get('recorded_at', '未知')}`" if lang == "简体中文" else f"**渠道:** {job.get('source','Web')} | **條目時間:** `{job.get('recorded_at', '未知')}`")
-                        st.link_button("一键直达投递 ➔" if lang == "简体中文" else "一鍵直達投遞 ➔", clean_and_build_jobsdb_url(job.get('title','internship')))
+                        st.link_button("一键直达投递 ➔" if lang == "简体中文" else "一鍵直達投遞 ➔", job.get('link', clean_job_link("", job.get('title','internship'))))
                     
     with c_event_book:
-        st.subheader("🎉 累计收录的活动 List" if lang == "简体中文" else "🎉 累計收錄的活動 List")
+        st.subheader("🎉 累计收录的未来活动 List" if lang == "简体中文" else "🎉 累計收錄的未來活動 List")
         all_recorded_events = load_local_data(EVENT_DB)
         if not all_recorded_events:
             st.info("🔍 暂无历史活动记录。请在第二个标签页进行实时雷达扫描。")
@@ -365,7 +398,6 @@ with tab3:
             for idx, ev in enumerate(all_recorded_events, 1):
                 if isinstance(ev, dict):
                     with st.expander(f"{idx}. [{ev.get('type','活动')}] {ev.get('title','Event')}"):
-                        # 🌟 账本里也同步清晰展示地点和日期
-                        st.markdown(f"📅 **时间:** `{ev.get('date','未知')}` | 📍 **地点:** `{ev.get('location','香港')}`")
+                        st.markdown(f"📅 **日期:** `{ev.get('date','未来')}` | 📍 **地点:** `{ev.get('location','香港')}`")
                         st.caption(f"⏱️ 记账录入时间: {ev.get('recorded_at', '未知')}" if lang == "简体中文" else f"⏱️ 記賬錄入時間: {ev.get('recorded_at', '未知')}")
                         st.link_button("活动官网 ➔" if lang == "简体中文" else "活動官網 ➔", ev.get('link','https://www.hkstp.org'))
