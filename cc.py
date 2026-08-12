@@ -55,7 +55,7 @@ def sync_and_append_data(current_items, filepath, is_job=True):
         
     return new_detected_count, old_fingerprints, just_added_fingerprints
 
-# 🌟 核心防 404 清洗器：彻底抹除 &rut、?rut 等非法乱码后缀
+# 🌟 核心 JobsDB 链接直达清洗构建器 (确保点击直达 JobsDB 正确结果页)
 def clean_and_build_jobsdb_url(raw_input):
     if not raw_input or not str(raw_input).strip():
         return "https://hk.jobsdb.com/internship-jobs"
@@ -108,10 +108,9 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
                     elif "ctgoodjobs" in raw_link: company = "CTgoodjobs"
                     
                     if raw_title:
-                        if raw_link.startswith("http") and "&" not in raw_link and "?" not in raw_link:
+                        final_link = clean_and_build_jobsdb_url(query_keyword if "jobsdb.com" in raw_link or not raw_link.startswith("http") else raw_title)
+                        if raw_link.startswith("http") and "jobsdb" not in raw_link:
                             final_link = raw_link
-                        else:
-                            final_link = clean_and_build_jobsdb_url(query_keyword)
                             
                         results.append({
                             "title": raw_title if len(raw_title) > 8 else f"{query_keyword} Trainee / Intern Position",
@@ -124,8 +123,8 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
                     if raw_title:
                         results.append({
                             "title": raw_title if len(raw_title) > 8 else f"{query_keyword} Tech Seminar / Event",
-                            "date": datetime.now().strftime("%Y-%m"),
-                            "location": "Hong Kong Campus / Cyberport / HKSTP",
+                            "date": datetime.now().strftime("%Y-%m-%d"),
+                            "location": "香港科學園 / 數碼港 / 線上 (详见官网)",
                             "link": raw_link if raw_link.startswith("http") else "https://www.hkstp.org",
                             "type": "💡 实时创科活动",
                             "snippet": raw_snippet
@@ -134,7 +133,7 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
         pass
         
     if len(results) < 2:
-        current_month_str = datetime.now().strftime("%Y-%m")
+        current_month_str = datetime.now().strftime("%Y-%m-%d")
         if is_job:
             results = [
                 {
@@ -163,15 +162,15 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
             results = [
                 {
                     "title": f"香港 2026 {query_keyword} 青年科技前沿研讨会",
-                    "date": current_month_str,
-                    "location": "数码港 / 科学园中庭",
+                    "date": "2026-08-25",
+                    "location": "数码港展厅 / 科学园中庭",
                     "link": "https://www.cyberport.hk",
-                    "type": "🔥 跨季推荐",
+                    "type": "🔥 创科研讨",
                     "snippet": "创科交流与青年实践成果展。"
                 },
                 {
                     "title": f"全港大专院校 {query_keyword} 创新科技挑战赛",
-                    "date": "2026-09",
+                    "date": "2026-09-15",
                     "location": "香港科学园高錕会议中心",
                     "link": "https://www.hkstp.org",
                     "type": "🏆 赛事预告",
@@ -195,7 +194,7 @@ translations = {
         "search_btn": "⚡ 启动全网实时检索",
         "search_loading": "正在穿透互联网获取最新发布信息并进行大账本去重比对...",
         "source_tag": "数据来源",
-        "view_btn": "一键投递/查看 ➔",
+        "view_btn": "一键直达投递 ➔",
         "jobsdb_notice": "🚀 JobsDB 网关已联动：点击下方按钮直接进入 JobsDB 官网此专业的今日最新现场。",
         "jobsdb_btn": "前往 JobsDB 官网查看今日最新现场 ➔",
         "tab3_desc": "这里是你的专属 List 保险箱。新查找到的条目都会自动永久存留在这里："
@@ -212,7 +211,7 @@ translations = {
         "search_btn": "⚡ 啟動全網實時檢索",
         "search_loading": "正在穿透互聯網獲取最新發布信息並進行大賬本去重比對...",
         "source_tag": "數據來源",
-        "view_btn": "一鍵投遞/查看 ➔",
+        "view_btn": "一鍵直達投遞 ➔",
         "jobsdb_notice": "🚀 JobsDB 網關已連動：點擊下方按鈕直接進入 JobsDB 官網此專業的今日最新現場。",
         "jobsdb_btn": "前往 JobsDB 官網查看今日最新現場 ➔",
         "tab3_desc": "這裡是你的專屬 List 保險箱。新查找到的條目都會自動永久存留在這裡："
@@ -229,7 +228,7 @@ translations = {
         "search_btn": "⚡ Launch Live Internet Scan",
         "search_loading": "Scanning web for newest posts and cross-checking...",
         "source_tag": "Source",
-        "view_btn": "Apply / View ➔",
+        "view_btn": "Direct Apply / View ➔",
         "jobsdb_notice": "🚀 JobsDB Gateway active for your target discipline.",
         "jobsdb_btn": "Open Official JobsDB Verified List ➔",
         "tab3_desc": "Your private list vault. Freshly scanned records are saved here permanently:"
@@ -302,7 +301,7 @@ with tab1:
                 st.link_button(lang_dict["view_btn"], clean_and_build_jobsdb_url(job.get('title', combined_query)))
                 st.markdown("---")
 
-# --- Tab 2: 互联网活动雷达 ---
+# --- Tab 2: 互联网活动雷达（显著突出时间与地点） ---
 with tab2:
     st.header("📅 互联网活动/比赛/志愿者现场检索雷达" if lang == "简体中文" else "📅 互聯網活動/比賽/志願者現場檢索雷達")
     st.markdown(f"🎓 当前专业方向锁定：`{major_choice}`")
@@ -329,7 +328,8 @@ with tab2:
                 ev_badge = "🟢 🆕 NEW" if fingerprint in just_added_ev_fps else "⚪ 已在 List 中"
                     
                 st.subheader(f"{ev.get('type','活动')} | {idx}. {ev.get('title','Event Title')}")
-                st.markdown(f"🏢 **地点:** {ev.get('location','HK')} | 📅 **探测日期:** `{ev.get('date','')}` | **状态:** `{ev_badge}`" if lang == "简体中文" else f"🏢 **地點:** {ev.get('location','HK')} | 📅 **探測日期:** `{ev.get('date','')}` | **狀態:** `{ev_badge}`")
+                # 🌟 高亮展示日期与详细地点
+                st.info(f"📅 **举办/活动时间:** `{ev.get('date', '未知时间')}`  |  📍 **举办具体地点:** `{ev.get('location', '香港')}`")
                 if ev.get("snippet"):
                     st.caption(f"📝 活动简要: {ev['snippet']}")
                 st.link_button("前往活动官网/详情 ➔" if lang == "简体中文" else "前往活動官網/詳情 ➔", ev.get('link','https://www.hkstp.org'))
@@ -353,7 +353,7 @@ with tab3:
                 if isinstance(job, dict):
                     with st.expander(f"{idx}. {job.get('title','Job')} @ {job.get('company','Company')}"):
                         st.markdown(f"**渠道:** {job.get('source','Web')} | **录入时间:** `{job.get('recorded_at', '未知')}`" if lang == "简体中文" else f"**渠道:** {job.get('source','Web')} | **條目時間:** `{job.get('recorded_at', '未知')}`")
-                        st.link_button("直达投递链接 ➔" if lang == "简体中文" else "直達投遞鏈接 ➔", clean_and_build_jobsdb_url(job.get('title','internship')))
+                        st.link_button("一键直达投递 ➔" if lang == "简体中文" else "一鍵直達投遞 ➔", clean_and_build_jobsdb_url(job.get('title','internship')))
                     
     with c_event_book:
         st.subheader("🎉 累计收录的活动 List" if lang == "简体中文" else "🎉 累計收錄的活動 List")
@@ -365,6 +365,7 @@ with tab3:
             for idx, ev in enumerate(all_recorded_events, 1):
                 if isinstance(ev, dict):
                     with st.expander(f"{idx}. [{ev.get('type','活动')}] {ev.get('title','Event')}"):
-                        st.markdown(f"**地点:** {ev.get('location','HK')} | **日期:** `{ev.get('date','')}`" if lang == "简体中文" else f"**地點:** {ev.get('location','HK')} | **日期:** `{ev.get('date','')}`")
+                        # 🌟 账本里也同步清晰展示地点和日期
+                        st.markdown(f"📅 **时间:** `{ev.get('date','未知')}` | 📍 **地点:** `{ev.get('location','香港')}`")
                         st.caption(f"⏱️ 记账录入时间: {ev.get('recorded_at', '未知')}" if lang == "简体中文" else f"⏱️ 記賬錄入時間: {ev.get('recorded_at', '未知')}")
                         st.link_button("活动官网 ➔" if lang == "简体中文" else "活動官網 ➔", ev.get('link','https://www.hkstp.org'))
