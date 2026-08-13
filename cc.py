@@ -54,36 +54,35 @@ def sync_and_append_data(current_items, filepath, is_job=True):
         
     return new_detected_count, old_fingerprints, just_added_fingerprints
 
-# 🌟 JobsDB 官方单岗位穿透 Link 引擎（彻底跳过搜索大列表，直接右侧展开）
-def build_bulletproof_jobsdb_url(company, job_keywords=""):
-    # 清洗公司名称
+# 🌟 JobsDB 官方企业 Portal 直达路由（右侧直接展开全量岗位 Details 与 Apply）
+def build_official_enterprise_url(company, job_keywords=""):
     comp_clean = str(company).strip()
     
-    # JobsDB 官方企业 Gateway 映射 (能够自动聚焦该雇主的特定岗位)
     portal_map = {
         "The Hong Kong Polytechnic University (PolyU)": "The-Hong-Kong-Polytechnic-University",
         "The Hong Kong Polytechnic University": "The-Hong-Kong-Polytechnic-University",
         "Hong Kong Metropolitan University (MU)": "Hong-Kong-Metropolitan-University",
         "Hong Kong Metropolitan University": "Hong-Kong-Metropolitan-University",
         "The University of Hong Kong (HKU)": "The-University-of-Hong-Kong",
+        "The Chinese University of Hong Kong (CUHK)": "The-Chinese-University-of-Hong-Kong",
         "SGS Hong Kong Limited": "SGS-Hong-Kong-Limited",
         "Swire Properties Limited": "Swire-Properties-Limited",
         "Hong Kong Science and Technology Parks Corporation (HKSTP)": "Hong-Kong-Science-and-Technology-Parks-Corporation",
-        "Cyberport Entrepreneurship Network": "Cyberport"
+        "Cyberport Entrepreneurship Centre Network": "Cyberport",
+        "CLP Power Hong Kong Limited": "CLP-Power-Hong-Kong-Limited",
+        "Maxim's Caterers Limited": "Maxims-Caterers-Limited"
     }
     
     slug = portal_map.get(comp_clean)
     if slug:
-        # 使用官方企业 Slug 路由，进入后左侧高亮该企业，右侧直接展开岗位 Details
         return f"https://hk.jobsdb.com/{slug}-jobs"
     else:
-        # 通用精简路由，绝不带冗余括号与编号，防止被重定向到搜索结果页
         clean_kw = re.sub(r'\(.*?\)|Ref:.*|[^a-zA-Z0-9\s]', ' ', str(job_keywords)).strip()
         kw_list = [w for w in clean_kw.split() if len(w) > 2]
         core_query = " ".join(kw_list[:2]) if kw_list else "Research Assistant"
         return f"https://hk.jobsdb.com/jobs?keywords={urllib.parse.quote(core_query)}"
 
-# ----------------- [ 🎯 多专业真实 PolyU 及本地雇主精细数据库 ] -----------------
+# ----------------- [ 🎯 各专业真实雇主岗位海量库 ] -----------------
 def get_comprehensive_jobs(major_key, user_kw=""):
     key = major_key.lower()
     
@@ -110,9 +109,9 @@ def get_comprehensive_jobs(major_key, user_kw=""):
                 ]
             },
             {
-                "title": "Quality Control & Food Analyst Intern",
+                "title": "Quality Control & Food Chemical Analyst Intern",
                 "company": "SGS Hong Kong Limited",
-                "snippet": "Kwai Chung. Chemical testing for food safety compliance, heavy metal testing, sample logging, and report drafting.",
+                "snippet": "Kwai Chung. Routine chemical testing for food safety compliance, heavy metal analysis, sample logging, and report drafting.",
                 "requirements": [
                     "Diploma/Degree in Analytical Chemistry, Food Testing Science, or Life Sciences.",
                     "Proactive learning attitude.",
@@ -130,13 +129,13 @@ def get_comprehensive_jobs(major_key, user_kw=""):
                 ]
             },
             {
-                "title": "Microbiology Laboratory Officer Trainee",
-                "company": "Eurofins Hong Kong Testing Limited",
-                "snippet": "Shatin Science Park. Bacterial culture testing, antimicrobial efficacy verification, reagent preparation, and lab maintenance.",
+                "title": "Assistant Food Technologist (Product Quality & Testing)",
+                "company": "Maxim's Caterers Limited",
+                "snippet": "Tai Po Industrial Estate. Shelf-life testing, raw material quality evaluation, sensory evaluation, and lab documentation.",
                 "requirements": [
-                    "Major in Food Science, Microbiology, Bioengineering, or Life Sciences.",
-                    "Passionate about practical laboratory analytical work.",
-                    "Hong Kong resident."
+                    "Higher Diploma or Degree in Food Science, Nutrition, or Quality Assurance.",
+                    "Knowledge of HACCP / ISO 22000 standards.",
+                    "Good problem-solving ability."
                 ]
             }
         ],
@@ -152,7 +151,7 @@ def get_comprehensive_jobs(major_key, user_kw=""):
                 ]
             },
             {
-                "title": "Part-Time Research & Lab Assistant",
+                "title": "Part-Time Research & Lab Assistant (Biomedical Sciences)",
                 "company": "The University of Hong Kong (HKU)",
                 "snippet": "Pokfulam. Cell culture maintenance, reagent preparation, fluorescence assay testing, and PCR analysis support.",
                 "requirements": [
@@ -169,6 +168,16 @@ def get_comprehensive_jobs(major_key, user_kw=""):
                     "Degree/Diploma in Life Sciences, Biomedical Engineering, or Biotechnology.",
                     "Detail-oriented mindset.",
                     "Eligible to work in Hong Kong."
+                ]
+            },
+            {
+                "title": "Research Assistant (Cell Culture & Biomarker Assay)",
+                "company": "The Chinese University of Hong Kong (CUHK)",
+                "snippet": "Shatin. Assisting in cell viability assays, western blot analysis, protein quantification, and lab management.",
+                "requirements": [
+                    "Degree student or graduate in Life Sciences or Biomedical Sciences.",
+                    "Meticulous and organized.",
+                    "Good communication skills."
                 ]
             }
         ],
@@ -202,6 +211,16 @@ def get_comprehensive_jobs(major_key, user_kw=""):
                     "Knowledge of Python, SQL, or REST APIs.",
                     "Proactive problem solver."
                 ]
+            },
+            {
+                "title": "Network Infrastructure & Systems Helper",
+                "company": "Hong Kong Metropolitan University (MU)",
+                "snippet": "Ho Man Tin. Assisting campus wireless network optimization, switch cabling audits, and IT user support.",
+                "requirements": [
+                    "Degree/Diploma student in IT, Computer Engineering, or Networking.",
+                    "Hands-on technical interest.",
+                    "Good communication."
+                ]
             }
         ],
         "environmental": [
@@ -216,16 +235,6 @@ def get_comprehensive_jobs(major_key, user_kw=""):
                 ]
             },
             {
-                "title": "Part-Time Field Assistant (Mosquito & Vector Surveillance)",
-                "company": "C2iVect Centre for Immunology & Infection",
-                "snippet": "New Territories. Field environmental sampling, vector surveillance, data logging, and lab specimen preparation.",
-                "requirements": [
-                    "Students in Environmental Science, Biological Sciences, or Public Health.",
-                    "Passionate about field research.",
-                    "Punctual and meticulous."
-                ]
-            },
-            {
                 "title": "Environmental & Sustainability Officer Trainee",
                 "company": "Swire Properties Limited",
                 "snippet": "Hong Kong Island. Carbon reduction audits, ESG performance tracking, and green building certification documentations.",
@@ -233,6 +242,16 @@ def get_comprehensive_jobs(major_key, user_kw=""):
                     "Degree in Environmental Science or Engineering.",
                     "Proficient in MS Excel data analysis.",
                     "Strong logical thinking."
+                ]
+            },
+            {
+                "title": "Sustainability Data & Carbon Audit Intern",
+                "company": "CLP Power Hong Kong Limited",
+                "snippet": "Kowloon. Carbon emission data tracking, renewable energy project documentation, and ESG report drafting.",
+                "requirements": [
+                    "Undergraduate in Environmental Science, Energy Management, or Engineering.",
+                    "Good Excel and data skills.",
+                    "Fluency in English."
                 ]
             }
         ]
@@ -250,8 +269,8 @@ def get_comprehensive_jobs(major_key, user_kw=""):
             results.append({
                 "title": item["title"],
                 "company": item["company"],
-                "source": "JobsDB Verified Portal",
-                "link": build_bulletproof_jobsdb_url(item["company"], item["title"]),
+                "source": "JobsDB Official Portal",
+                "link": build_official_enterprise_url(item["company"], item["title"]),
                 "snippet": item["snippet"],
                 "requirements": item["requirements"]
             })
@@ -260,14 +279,14 @@ def get_comprehensive_jobs(major_key, user_kw=""):
         {
             "title": item["title"],
             "company": item["company"],
-            "source": "JobsDB Verified Portal",
-            "link": build_bulletproof_jobsdb_url(item["company"], item["title"]),
+            "source": "JobsDB Official Portal",
+            "link": build_official_enterprise_url(item["company"], item["title"]),
             "snippet": item["snippet"],
             "requirements": item["requirements"]
         } for item in selected_pool
     ]
 
-# ----------------- [ 📅 2026-2027 本地创科活动数据库 ] -----------------
+# ----------------- [ 📅 2026-2027 本地创科活动全量数据库 ] -----------------
 def get_comprehensive_events(major_key, user_kw=""):
     events_pool = [
         {
@@ -309,6 +328,14 @@ def get_comprehensive_events(major_key, user_kw=""):
             "link": "https://www.hkmu.edu.hk",
             "type": "💡 11月 创业训练营",
             "snippet": "面向大专院校学生的创业训练与创新组概念赛宣讲，提供项目指导与资金对接机会。"
+        },
+        {
+            "title": "数码港 Career Fair (CCF) 2026 青年创客嘉年华暨实习招聘会",
+            "date": "2026-03-21",
+            "location": "数码港 3 座 Exhibition Gallery",
+            "link": "https://www.cyberport.hk",
+            "type": "🎯 招聘与实习嘉年华",
+            "snippet": "涵盖 AI 模拟面试、CV Clinic、Low-Altitude Economy 展示及实习项目现场面试。"
         }
     ]
     return events_pool
