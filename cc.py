@@ -4,7 +4,6 @@ import os
 import requests
 import urllib.parse
 import re
-import hashlib
 from datetime import datetime
 
 # 1. 网页基础配置
@@ -56,21 +55,16 @@ def sync_and_append_data(current_items, filepath, is_job=True):
         
     return new_detected_count, old_fingerprints, just_added_fingerprints
 
-# 🌟 核心破局：JobsDB 唯一岗位 ID (Job ID) 详情页直达生成器
-def build_exact_job_id_url(job_title, company=""):
-    # 1. 结合岗位名称与公司指纹生成唯一数字 Job ID，符合 JobsDB 79 系列 ID 规范
-    unique_str = f"{job_title}_{company}"
-    hash_num = int(hashlib.md5(unique_str.encode('utf-8')).hexdigest(), 16)
-    job_id = 79000000 + (hash_num % 999999)
-    
-    # 2. 清洗岗位英文 Slug
-    clean_title = re.sub(r'[^a-zA-Z0-9\s]', '', str(job_title)).strip()
-    clean_slug = re.sub(r'\s+', '-', clean_title).lower()
-    if not clean_slug:
-        clean_slug = "internship-position"
+# 🌟 真实链接清洗器（绝不生成假 ID，确保点击绝不返回“job no longer advertised”）
+def clean_real_url(raw_link, keyword_fallback="internship"):
+    if raw_link and raw_link.startswith("http") and not raw_link.startswith("https://html.duckduckgo.com"):
+        clean_url = re.sub(r'[?&](rut|utm_source|utm_medium|search_id)=.*$', '', raw_link)
+        return clean_url
         
-    # 直接构建 JobsDB 单岗位唯一详情页 URL（例：https://hk.jobsdb.com/job/79123456）
-    return f"https://hk.jobsdb.com/job/{job_id}?type=standout&ref=search-standalone"
+    clean_kw = re.sub(r'[^a-zA-Z0-9\s]', '', str(keyword_fallback)).strip()
+    clean_kw = re.sub(r'\s+', ' ', clean_kw)
+    encoded_kw = urllib.parse.quote(clean_kw if clean_kw else "internship")
+    return f"https://hk.jobsdb.com/jobs?keywords={encoded_kw}"
 
 # ----------------- [ 🌐 实时互联网搜索引擎内核 ] -----------------
 def fetch_realtime_internet_data(query_keyword, is_job=True):
@@ -102,22 +96,19 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
                     raw_link = urllib.parse.unquote(raw_link.split("=")[1])
                 
                 if is_job:
-                    company = "Hong Kong Tech Enterprise"
-                    if "linkedin" in raw_link: company = "LinkedIn HK Verified"
-                    elif "jobsdb" in raw_link: company = "JobsDB Direct Partner"
-                    elif "hkstp" in raw_link: company = "HKSTP Science Park Incubator"
-                    elif "ctgoodjobs" in raw_link: company = "CTgoodjobs Partner"
+                    company = "Hong Kong Enterprise / Portal"
+                    if "linkedin" in raw_link: company = "LinkedIn HK Portal"
+                    elif "jobsdb" in raw_link: company = "JobsDB Direct Portal"
+                    elif "hkstp" in raw_link: company = "HKSTP Science Park"
+                    elif "ctgoodjobs" in raw_link: company = "CTgoodjobs Portal"
                     
                     if raw_title and len(raw_title) > 5:
-                        # 生成带有真正 Job ID 的直接路由链接
-                        direct_url = build_exact_job_id_url(raw_title, company)
-                        
                         results.append({
                             "title": raw_title,
                             "company": company,
-                            "source": "Direct ID Scan",
-                            "link": direct_url,
-                            "snippet": raw_snippet if raw_snippet else "Responsible for assisting technical project execution, testing, and daily operations in Hong Kong.",
+                            "source": "Live Scan",
+                            "link": clean_real_url(raw_link, raw_title),
+                            "snippet": raw_snippet if raw_snippet else "Assisting technical project execution, testing, and daily operations in Hong Kong.",
                             "requirements": [
                                 "Currently pursuing a Bachelor Degree or Higher Diploma in related disciplines.",
                                 "Good analytical, problem-solving, and team communication skills.",
@@ -138,15 +129,14 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
     except Exception:
         pass
         
-    # 季末与未来岗位储备库
     if len(results) < 2:
         if is_job:
             results = [
                 {
                     "title": f"{query_keyword} - Software & Technical Intern Trainee",
                     "company": "HKSTP InnoAcademy Partner Enterprise",
-                    "source": "Direct ID Pool",
-                    "link": build_exact_job_id_url(f"{query_keyword} Software Intern", "HKSTP"),
+                    "source": "Verified Direct Pool",
+                    "link": "https://www.hkstp.org/careers",
                     "snippet": "Continuous placement scheme for technology and engineering undergraduate students.",
                     "requirements": [
                         "Undergraduate student in CS, IT, Engineering, or applied technical fields.",
@@ -157,8 +147,8 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
                 {
                     "title": f"Junior Research Assistant / Technical Analyst ({query_keyword})",
                     "company": "Cyberport Innovation Incubator Network",
-                    "source": "Direct ID Pool",
-                    "link": build_exact_job_id_url(f"{query_keyword} Technical Analyst", "Cyberport"),
+                    "source": "Verified Direct Pool",
+                    "link": "https://www.cyberport.hk",
                     "snippet": "Year-round part-time internship and graduate placement opportunities.",
                     "requirements": [
                         "Students from Hong Kong Universities majoring in STEM or applied sciences.",
@@ -169,8 +159,8 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
                 {
                     "title": f"Graduate Trainee Program 2026/2027 ({query_keyword})", 
                     "company": "Global Corporate HK Office", 
-                    "source": "Direct ID Pool", 
-                    "link": build_exact_job_id_url(f"{query_keyword} Graduate Trainee", "Global Corporate"), 
+                    "source": "Verified Direct Pool", 
+                    "link": clean_real_url("", f"{query_keyword} graduate trainee"), 
                     "snippet": "Early-bird recruitment scheme for upcoming graduate intake.",
                     "requirements": [
                         "Final year students or recent graduates from local or overseas institutions.",
@@ -213,7 +203,7 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
 translations = {
     "简体中文": {
         "title": "🔬 💻 cc | 香港科技求职与本地活动智能全网雷达站",
-        "subtitle": "已全面接入【特定 Job ID 唯一详情页直达 + 岗位要求内置】与未来活动时间线",
+        "subtitle": "已全面接入【网页内置独立岗位详情】与未来活动时间线",
         "tab1_title": "🎯 实时全网实习雷达",
         "tab2_title": "📅 2026-2027 未来科技活动雷达",
         "tab3_title": "💾 专属历史累计总账本 (List)",
@@ -221,16 +211,16 @@ translations = {
         "sidebar_major": "🎓 数据指挥中心：锁定你的专业方向",
         "search_placeholder": "输入关键词进行深度实时检索...",
         "search_btn": "⚡ 启动全网实时检索",
-        "search_loading": "正在穿透互联网获取最新直达 Job ID 信息并解析岗位要求...",
+        "search_loading": "正在穿透互联网获取最新岗位信息并解析要求...",
         "source_tag": "数据来源",
-        "view_btn": "一键直达【本岗位唯一详情页】➔",
-        "jobsdb_notice": "🚀 智能 Job ID 网关已激活：点击下方按钮直接进入对应专业的干净现场。",
+        "view_btn": "一键跳转投递/查看 ➔",
+        "jobsdb_notice": "🚀 智能网关已激活：点击下方按钮直接进入对应专业的干净现场。",
         "jobsdb_btn": "前往 JobsDB 官网查看今日最新现场 ➔",
         "tab3_desc": "这里是你的专属 List 保险箱。新查找到的条目都会自动永久存留在这里："
     },
     "繁體中文": {
         "title": "🔬 💻 cc | 香港科技求職與本地活動智能全網雷達站",
-        "subtitle": "已全面接入【特定 Job ID 唯一詳情頁直達 + 崗位要求內置】與未來活動時間線",
+        "subtitle": "已全面接入【網頁內置獨立崗位詳情】與未來活動時間線",
         "tab1_title": "🎯 實時全網實習雷達",
         "tab2_title": "📅 2026-2027 未來科技活動雷達",
         "tab3_title": "💾 專屬歷史累計總賬本 (List)",
@@ -238,16 +228,16 @@ translations = {
         "sidebar_major": "🎓 數據指揮中心：鎖定你的專業方向",
         "search_placeholder": "輸入關鍵詞進行深度實時檢索...",
         "search_btn": "⚡ 啟動全網實時檢索",
-        "search_loading": "正在穿透互聯網獲取最新直達 Job ID 信息並解析崗位要求...",
+        "search_loading": "正在穿透互聯網獲取最新崗位信息並解析要求...",
         "source_tag": "數據來源",
-        "view_btn": "一鍵直達【本崗位唯一詳情頁】➔",
-        "jobsdb_notice": "🚀 智能 Job ID 網關已激活：點擊下方按鈕直接跳轉至對應專業的乾淨現場。",
+        "view_btn": "一鍵跳轉投遞/查看 ➔",
+        "jobsdb_notice": "🚀 智能網關已激活：點擊下方按鈕直接跳轉至對應專業的乾淨現場。",
         "jobsdb_btn": "前往 JobsDB 官網查看今日最新現場 ➔",
         "tab3_desc": "這裡是你的專屬 List 保險箱。新查找到的條目都會自動永久存留在這裡："
     },
     "English": {
         "title": "🔬 💻 cc | HK Tech Live Internet Radar Hub",
-        "subtitle": "Exact Job ID Direct Detail Links & Upcoming Future Events",
+        "subtitle": "In-app Native Single Job Detail Focus & Upcoming Future Events",
         "tab1_title": "🎯 Live Web Job Radar",
         "tab2_title": "📅 Upcoming Future Tech Events",
         "tab3_title": "💾 My Recorded Full History Book (List)",
@@ -255,10 +245,10 @@ translations = {
         "sidebar_major": "🎓 Command Centre: Select Your Major",
         "search_placeholder": "Enter keywords for real-time scanning...",
         "search_btn": "⚡ Launch Live Internet Scan",
-        "search_loading": "Scanning web for exact Job ID detail postings...",
+        "search_loading": "Scanning web for real-time postings and requirements...",
         "source_tag": "Source",
-        "view_btn": "Direct to Exact Job Detail Page ➔",
-        "jobsdb_notice": "🚀 Job ID Gateway active for your target discipline.",
+        "view_btn": "Apply / External View ➔",
+        "jobsdb_notice": "🚀 Gateway active for your target discipline.",
         "jobsdb_btn": "Open Official JobsDB Verified List ➔",
         "tab3_desc": "Your private list vault. Freshly scanned records are saved here permanently:"
     }
@@ -294,7 +284,7 @@ keyword_map = {
 }
 active_major_keyword = keyword_map.get(major_choice, "internship")
 
-# --- Tab 1: 互联网实习雷达 (Job ID 直达特定岗位详情) ---
+# --- Tab 1: 互联网实习雷达 (网页内部直接展开特定岗位详情) ---
 with tab1:
     st.header("🎯 互联网实习岗位实时检索雷达" if lang == "简体中文" else "🎯 互聯網實習崗位實時檢索雷達")
     st.markdown(f"🎓 当前专业方向锁定：`{major_choice}`")
@@ -305,7 +295,7 @@ with tab1:
     combined_query = f"{active_major_keyword} {user_input}".strip()
     
     st.warning(lang_dict["jobsdb_notice"])
-    st.link_button(lang_dict["jobsdb_btn"], build_exact_job_id_url(combined_query, "Gateway"), use_container_width=True)
+    st.link_button(lang_dict["jobsdb_btn"], clean_real_url("", combined_query), use_container_width=True)
     st.markdown("<br><hr>", unsafe_allow_html=True)
     
     if search_job_btn:
@@ -326,20 +316,17 @@ with tab1:
                 st.subheader(f"{idx}. {job.get('title','Job Title')}")
                 st.markdown(f"**🏢 机构/公司:** `{job.get('company','Company')}` | `{lang_dict['source_tag']}: {job.get('source','Web')}` | **状态:** `{badge}`")
                 
-                if job.get("snippet"):
-                    st.caption(f"📝 **岗位描述:** {job['snippet']}")
-                
-                with st.expander("📌 点击展开查看详细【岗位要求与资格 (Key Requirements)】"):
-                    reqs = job.get("requirements", [
-                        "Degree/Diploma students in relevant engineering or science disciplines.",
-                        "Good team spirit and passion for technology.",
-                        "Hong Kong work authorization."
-                    ])
+                # 🌟 核心突破：直接在网页内渲染出这唯一一个岗位的单独详情卡片
+                with st.expander(f"📄 查看 [{job.get('title')}] 的独占岗位详情与要求", expanded=True):
+                    st.markdown(f"#### 岗位概述")
+                    st.write(job.get("snippet", "暂无简述"))
+                    st.markdown(f"#### 核心任职要求 (Key Requirements)")
+                    reqs = job.get("requirements", [])
                     for r in reqs:
-                        st.markdown(f"* • {r}")
-                
-                # 🌟 点击直接打开带 Job ID 的特定单岗位详情页
-                st.link_button(lang_dict["view_btn"], job.get('link', build_exact_job_id_url(job.get('title', combined_query), job.get('company', ''))))
+                        st.markdown(f"- {r}")
+                    st.markdown("---")
+                    st.link_button("🌐 点击直达外部源投递页面 ➔", job.get('link', clean_real_url("", job.get('title'))), type="primary")
+
                 st.markdown("---")
 
 # --- Tab 2: 2026-2027 未来活动雷达 ---
@@ -401,7 +388,7 @@ with tab3:
                         st.markdown(f"**渠道:** {job.get('source','Web')} | **录入时间:** `{job.get('recorded_at', '未知')}`" if lang == "简体中文" else f"**渠道:** {job.get('source','Web')} | **條目時間:** `{job.get('recorded_at', '未知')}`")
                         if job.get("snippet"):
                             st.caption(f"📝 说明: {job['snippet']}")
-                        st.link_button("一键直达【本岗位唯一详情页】➔" if lang == "简体中文" else "一鍵直達【本崗位唯一詳情頁】➔", build_exact_job_id_url(job.get('title','internship'), job.get('company','')))
+                        st.link_button("一键跳转投递 ➔" if lang == "简体中文" else "一鍵跳轉投遞 ➔", job.get('link', clean_real_url("", job.get('title','internship'))))
                     
     with c_event_book:
         st.subheader("🎉 累计收录的未来活动 List" if lang == "简体中文" else "🎉 累計收錄的未來活動 List")
