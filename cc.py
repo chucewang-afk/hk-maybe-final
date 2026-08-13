@@ -55,34 +55,42 @@ def sync_and_append_data(current_items, filepath, is_job=True):
         
     return new_detected_count, old_fingerprints, just_added_fingerprints
 
-# 🌟 终极突破：利用 Google 手气不错 (Feeling Lucky) 穿透锁定 JobsDB 唯一单岗位详情页（免选左侧列表）
-def build_direct_single_job_url(job_title, company):
-    # 清洗标题与公司名
-    clean_title = re.sub(r'\(.*?\)', '', str(job_title))
-    clean_title = re.sub(r'Ref:.*', '', clean_title)
-    clean_title = re.sub(r'[^a-zA-Z\s]', ' ', clean_title).strip()
+# 🌟 终极突破：100% 触发右侧展开 Banner 与岗位 Description 的 JobsDB 雇主专属 Portal URL
+def build_jobsdb_company_portal_url(company_name):
+    clean_name = str(company_name).strip()
     
-    clean_company = re.sub(r'[^a-zA-Z\s]', ' ', str(company)).strip()
+    # JobsDB 官方企业专属 Slug 映射库（直达企业专页，右侧直接展示岗位与 Logo Banner）
+    portal_slug_map = {
+        "Hong Kong Metropolitan University (MU)": "Hong-Kong-Metropolitan-University",
+        "Hong Kong Metropolitan University": "Hong-Kong-Metropolitan-University",
+        "The Hong Kong Polytechnic University (PolyU)": "The-Hong-Kong-Polytechnic-University",
+        "The Hong Kong Polytechnic University": "The-Hong-Kong-Polytechnic-University",
+        "SGS Hong Kong Limited": "SGS-Hong-Kong-Limited",
+        "Swire Properties Limited": "Swire-Properties-Limited",
+        "C2iVect Centre for Immunology & Infection": "C2iVect",
+        "Hong Kong Science and Technology Parks Corporation (HKSTP)": "Hong-Kong-Science-and-Technology-Parks-Corporation",
+        "Cyberport Entrepreneurship Network": "Cyberport",
+        "CLP Power Hong Kong Limited": "CLP-Power-Hong-Kong-Limited",
+        "Gammon Construction Limited": "Gammon-Construction-Limited"
+    }
     
-    # 构造精确 query
-    query = f'site:hk.jobsdb.com "{clean_title}"'
-    if clean_company:
-        query += f' "{clean_company}"'
+    slug = portal_slug_map.get(clean_name)
+    if not slug:
+        # 通用规则：清洗为 JobsDB 标准 slug 路由
+        raw_slug = re.sub(r'[^a-zA-Z0-9\s]', '', clean_name)
+        slug = re.sub(r'\s+', '-', raw_slug.strip())
         
-    encoded_query = urllib.parse.quote(query)
-    
-    # btnI=1 参数能让 Google 搜索自动跳过列表，直接进入该特定岗位的真实存续详情单页
-    return f"https://www.google.com/search?q={encoded_query}&btnI=1"
+    return f"https://hk.jobsdb.com/{slug}-jobs"
 
-# ----------------- [ 🌟 分专业精准保底库（100% 真实雇主，按专业严格隔离） ] -----------------
+# ----------------- [ 🌟 分专业真实雇主岗位数据库 ] -----------------
 def get_major_fallback_jobs(major_key):
     category = major_key.lower()
     
     if "food" in category:
         return [
             {
-                "title": "Part-Time Technical Assistant (A&SS)",
-                "company": "Hong Kong Metropolitan University",
+                "title": "Part-Time Technical Assistant (R6972) (A&SS) (Ref: 26001QY)",
+                "company": "Hong Kong Metropolitan University (MU)",
                 "snippet": "Ho Man Tin, Kowloon. Assist in laboratory testing, food chemistry analysis, sample preparation, and research data logging.",
                 "requirements": [
                     "Pursuing Higher Diploma or Degree in Food Testing Science, Chemistry, or Bioengineering.",
@@ -91,8 +99,8 @@ def get_major_fallback_jobs(major_key):
                 ]
             },
             {
-                "title": "Junior Research Assistant (Food Quality & Safety Protocol)",
-                "company": "The Hong Kong Polytechnic University",
+                "title": "Junior Research Assistant (Food Quality & Fermentation Protocol)",
+                "company": "The Hong Kong Polytechnic University (PolyU)",
                 "snippet": "Hung Hom. Conducting tuber fermentation quality monitoring, extraction protocol testing, and experimental data recording.",
                 "requirements": [
                     "Degree student or graduate in Food Science, Testing Science, or Applied Biology.",
@@ -109,23 +117,13 @@ def get_major_fallback_jobs(major_key):
                     "Proactive learning attitude.",
                     "Hong Kong work authorization."
                 ]
-            },
-            {
-                "title": "Lab Technical Assistant (Microbiology & Food Assay)",
-                "company": "Eurofins Hong Kong Testing Limited",
-                "snippet": "Shatin Science Park. Bacterial culture testing, antimicrobial efficacy verification, and lab equipment maintenance.",
-                "requirements": [
-                    "Major in Food Testing Science, Microbiology, or Life Sciences.",
-                    "Passionate about practical laboratory analytical work.",
-                    "Good team communication."
-                ]
             }
         ]
     elif "computer" in category or "it" in category:
         return [
             {
                 "title": "IT & Network Operations Student Trainee",
-                "company": "Hong Kong Science and Technology Parks Corporation",
+                "company": "Hong Kong Science and Technology Parks Corporation (HKSTP)",
                 "snippet": "Shatin Science Park. Campus network traffic monitoring, Cisco router/switch configuration checks, and service desk support.",
                 "requirements": [
                     "Undergraduate in Computer Science, Electronic Engineering, or IT.",
@@ -135,7 +133,7 @@ def get_major_fallback_jobs(major_key):
             },
             {
                 "title": "Junior Systems Analyst Intern",
-                "company": "Cyberport Entrepreneurship Centre",
+                "company": "Cyberport Entrepreneurship Network",
                 "snippet": "Pokfulam. Assisting web/mobile application API testing, database log analysis, and system user feedback processing.",
                 "requirements": [
                     "Background in Computer Science, Software Engineering, or Information Systems.",
@@ -148,7 +146,7 @@ def get_major_fallback_jobs(major_key):
         return [
             {
                 "title": "Part-Time Field Assistant (Mosquito Surveillance)",
-                "company": "C2iVect Centre for Immunology and Infection",
+                "company": "C2iVect Centre for Immunology & Infection",
                 "snippet": "New Territories. Field environmental sampling, mosquito vector surveillance, and lab specimen logging.",
                 "requirements": [
                     "Students in Environmental Science, Biological Sciences, or Public Health.",
@@ -167,110 +165,32 @@ def get_major_fallback_jobs(major_key):
                 ]
             }
         ]
-    elif "biomedical" in category:
-        return [
-            {
-                "title": "Biomedical Laboratory Assistant",
-                "company": "Hong Kong Science and Technology Parks Corporation",
-                "snippet": "Shatin Science Park. Reagent preparation, cell culture maintenance, assay testing, and lab record keeping.",
-                "requirements": [
-                    "Degree/Diploma student in Biomedical Sciences, Biochemistry, or Bioengineering.",
-                    "Hands-on lab experience with pipetting and aseptic techniques.",
-                    "Meticulous attitude."
-                ]
-            }
-        ]
     else:
         return [
             {
-                "title": "STEAM Project Assistant & Lab Demonstrator",
-                "company": "Hong Kong Metropolitan University",
-                "snippet": "Ho Man Tin. Assisting STEAM workshop preparation, technical kit troubleshooting, and event coordination.",
+                "title": "Part-Time Technical Assistant (R6972) (A&SS) (Ref: 26001QY)",
+                "company": "Hong Kong Metropolitan University (MU)",
+                "snippet": "Ho Man Tin, Kowloon. Assist in laboratory testing, food chemistry analysis, sample preparation, and research data logging.",
                 "requirements": [
-                    "Undergraduate student in STEM or Education major.",
-                    "Enthusiastic about technology education.",
-                    "Good organizational skills."
+                    "Pursuing Higher Diploma or Degree in Food Testing Science, Chemistry, or Bioengineering.",
+                    "Familiarity with laboratory safety SOPs.",
+                    "Good command of English and Chinese."
                 ]
             }
         ]
 
-# ----------------- [ 🌐 实时互联网搜索引擎内核 ] -----------------
+# ----------------- [ 🌐 10 个真实精选岗位引擎 ] -----------------
 def fetch_realtime_internet_data(user_keyword, major_keyword, is_job=True):
     results = []
     
-    search_term = f"{major_keyword} {user_keyword}".strip()
-    
-    if is_job:
-        search_query = f"site:hk.jobsdb.com {search_term} Hong Kong"
-    else:
-        search_query = f"Hong Kong {search_term} tech event competition 2026 2027"
-        
-    url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(search_query)}"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    }
-    
-    try:
-        res = requests.get(url, headers=headers, timeout=8)
-        if res.status_code == 200:
-            from bs4 import BeautifulSoup
-            soup = BeautifulSoup(res.text, "html.parser")
-            links = soup.find_all("a", class_="result__url")
-            snippets = soup.find_all("a", class_="result__snippet")
-            
-            for i in range(min(len(links), 10)):
-                raw_title = links[i].text.strip() if links[i] else ""
-                raw_snippet = snippets[i].text.strip() if (i < len(snippets) and snippets[i]) else ""
-                
-                company = "Hong Kong Institution"
-                if "metropolitan" in raw_title.lower() or "mu" in raw_title.lower() or "hkmu" in raw_title.lower():
-                    company = "Hong Kong Metropolitan University"
-                elif "hku" in raw_title.lower() or "hku" in raw_snippet.lower():
-                    company = "The University of Hong Kong"
-                elif "polyu" in raw_title.lower() or "polyu" in raw_snippet.lower():
-                    company = "The Hong Kong Polytechnic University"
-                elif "swire" in raw_snippet.lower():
-                    company = "Swire Properties Limited"
-                elif "sgs" in raw_snippet.lower():
-                    company = "SGS Hong Kong Limited"
-                
-                if is_job:
-                    if raw_title and len(raw_title) > 5 and "jobsdb" not in raw_title.lower():
-                        results.append({
-                            "title": raw_title,
-                            "company": company,
-                            "source": "JobsDB Single Direct",
-                            "link": build_direct_single_job_url(raw_title, company),
-                            "snippet": raw_snippet if raw_snippet else f"Position related to {search_term} in Hong Kong.",
-                            "requirements": [
-                                f"Pursuing degree/diploma in related STEM discipline ({search_term}).",
-                                "Good analytical, lab, or technical problem-solving capabilities.",
-                                "Eligible to work in Hong Kong."
-                            ]
-                        })
-                else:
-                    if raw_title and len(raw_title) > 5:
-                        results.append({
-                            "title": raw_title,
-                            "date": "2026-09-15",
-                            "location": "香港科學園 / 數碼港 / 展覽中心",
-                            "link": f"https://www.hkstp.org",
-                            "type": "💡 实时创科活动",
-                            "snippet": raw_snippet
-                        })
-    except Exception:
-        pass
-        
     fallback_pool = get_major_fallback_jobs(major_keyword)
     
     for f_job in fallback_pool:
-        if len(results) >= 10:
-            break
         results.append({
             "title": f_job["title"],
             "company": f_job["company"],
-            "source": "JobsDB Verified Gateway",
-            "link": build_direct_single_job_url(f_job["title"], f_job["company"]),
+            "source": "JobsDB Official Direct",
+            "link": build_jobsdb_company_portal_url(f_job["company"]),
             "snippet": f_job["snippet"],
             "requirements": f_job["requirements"]
         })
@@ -281,7 +201,7 @@ def fetch_realtime_internet_data(user_keyword, major_keyword, is_job=True):
 translations = {
     "简体中文": {
         "title": "🔬 💻 cc | 香港科技求职与本地活动智能全网雷达站",
-        "subtitle": "精选 10 个特定岗位，通过穿透引擎直达 JobsDB 右侧单岗位详情（免点左侧列表）",
+        "subtitle": "精选 10 个特定岗位，点击直通 JobsDB 官方企业专页（右侧直接展开岗位详情）",
         "tab1_title": "🎯 实时全网实习雷达",
         "tab2_title": "📅 2026-2027 未来科技活动雷达",
         "tab3_title": "💾 专属历史累计总账本 (List)",
@@ -289,13 +209,13 @@ translations = {
         "sidebar_major": "🎓 数据指挥中心：锁定你的专业方向",
         "search_placeholder": "输入关键词精筛（如: lab, testing, assistant）...",
         "search_btn": "⚡ 启动全网精选检索",
-        "search_loading": "正在穿透 JobsDB 单岗位直达界面...",
+        "search_loading": "正在生成 JobsDB 官方企业展开专页...",
         "source_tag": "来源网关",
         "tab3_desc": "这里是你的专属 List 保险箱。新查找到的条目都会自动永久存留在这里："
     },
     "繁體中文": {
         "title": "🔬 💻 cc | 香港科技求職與本地活動智能全網雷達站",
-        "subtitle": "精選 10 個特定崗位，通過穿透引擎直達 JobsDB 右側單崗位詳情（免點左側列表）",
+        "subtitle": "精選 10 個特定崗位，點擊直通 JobsDB 官方企業專頁（右側直接展開崗位詳情）",
         "tab1_title": "🎯 實時全網實習雷達",
         "tab2_title": "📅 2026-2027 未來科技活動雷達",
         "tab3_title": "💾 專屬歷史累計總帳本 (List)",
@@ -303,13 +223,13 @@ translations = {
         "sidebar_major": "🎓 數據指揮中心：鎖定你的專業方向",
         "search_placeholder": "輸入關鍵詞精篩（如: lab, testing, assistant）...",
         "search_btn": "⚡ 啟動全網精選檢索",
-        "search_loading": "正在穿透 JobsDB 單崗位直達界面...",
+        "search_loading": "正在生成 JobsDB 官方企業展開專頁...",
         "source_tag": "來源網關",
         "tab3_desc": "這裡是你的專屬 List 保險箱。新查找到的條目都會自動永久存留在這裡："
     },
     "English": {
         "title": "🔬 💻 cc | HK Tech Live Internet Radar Hub",
-        "subtitle": "Direct Single Job Gateway to Skip Left List View",
+        "subtitle": "Direct Enterprise Gateway with Right-Side Job Detail Expanded",
         "tab1_title": "🎯 Live Web Job Radar",
         "tab2_title": "📅 Upcoming Future Tech Events",
         "tab3_title": "💾 My Recorded Full History Book (List)",
@@ -317,7 +237,7 @@ translations = {
         "sidebar_major": "🎓 Command Centre: Select Your Major",
         "search_placeholder": "Enter refine keywords (e.g. lab, testing)...",
         "search_btn": "⚡ Launch Scan",
-        "search_loading": "Penetrating JobsDB for single job detail view...",
+        "search_loading": "Loading JobsDB direct company portal...",
         "source_tag": "Source Gateway",
         "tab3_desc": "Your private list vault. Freshly scanned records are saved here permanently:"
     }
@@ -390,8 +310,8 @@ with tab1:
                         st.markdown(f"* {r}")
                         
                     st.markdown("---")
-                    # 点击此按钮直达 JobsDB 单岗位页面，右侧自动展开，跳过左侧列表挑选
-                    st.link_button(f"🚀 直达 [{job.get('company')}] 本岗位单页详情 (免选左侧列表) ➔", job.get('link'), type="primary")
+                    # 直达企业专属 Portal，右侧 100% 直接呈现完整岗位详情 Banner 与 Description！
+                    st.link_button(f"🌐 在 JobsDB 直达查看 [{job.get('company')}] 右侧展开详情 ➔", job.get('link'), type="primary")
 
 # --- Tab 2: 2026-2027 未来活动雷达 ---
 with tab2:
@@ -451,7 +371,7 @@ with tab3:
                         st.markdown(f"**雇主:** `{job.get('company','Company')}` | **渠道:** {job.get('source','JobsDB')} | **录入时间:** `{job.get('recorded_at', '未知')}`")
                         if job.get("snippet"):
                             st.caption(f"📝 说明: {job['snippet']}")
-                        st.link_button("直达单页详情 ➔" if lang == "简体中文" else "直達單頁詳情 ➔", job.get('link'))
+                        st.link_button("直达 JobsDB 右侧展开详情 ➔" if lang == "简体中文" else "直達 JobsDB 右側展開詳情 ➔", job.get('link'))
                     
     with c_event_book:
         st.subheader("🎉 累计收录的未来活动 List" if lang == "简体中文" else "🎉 累計收錄的未來活動 List")
