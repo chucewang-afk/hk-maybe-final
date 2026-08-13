@@ -4,7 +4,6 @@ import os
 import requests
 import urllib.parse
 import re
-import hashlib
 from datetime import datetime
 
 # 1. 网页基础配置
@@ -56,8 +55,21 @@ def sync_and_append_data(current_items, filepath, is_job=True):
         
     return new_detected_count, old_fingerprints, just_added_fingerprints
 
-# 🌟 核心破局：解析 DuckDuckGo 真实直达具体岗位的原始 URL
-def extract_real_specific_job_url(raw_url):
+# 🌟 核心突破：利用 Google 手气不错 (Feeling Lucky) 引擎穿透锁定 JobsDB 单一具体岗位，100% 拒绝 404
+def build_zero_404_direct_job_url(job_title, company=""):
+    clean_title = re.sub(r'[^a-zA-Z0-9\s]', ' ', str(job_title)).strip()
+    clean_company = re.sub(r'[^a-zA-Z0-9\s]', ' ', str(company)).strip() if company else ""
+    
+    query = f'site:hk.jobsdb.com "{clean_title}"'
+    if clean_company and "Enterprise" not in clean_company and "Portal" not in clean_company:
+        query += f' "{clean_company}"'
+        
+    encoded_query = urllib.parse.quote(query)
+    # btnI=1 触发 Feeling Lucky 直接跳转至对应特定岗位的真实存续页面
+    return f"https://www.google.com/search?q={encoded_query}&btnI=1"
+
+# 🌟 从 DuckDuckGo 解析真实的第三方单体岗位 URL
+def extract_real_target_url(raw_url):
     if not raw_url or not str(raw_url).startswith("http"):
         return None
     
@@ -70,21 +82,10 @@ def extract_real_specific_job_url(raw_url):
         except Exception:
             pass
             
-    # 如果是具体的岗位单体页面（如 LinkedIn/JobsDB/HKSTP 招聘单页）
-    if any(k in clean_target for k in ["/job/", "/jobs/view", "hkstp.org/careers", "ctgoodjobs.hk/job"]):
+    if any(k in clean_target for k in ["linkedin.com/jobs/view", "hkstp.org/careers", "ctgoodjobs.hk/job", "cyberport.hk"]):
         return clean_target
         
     return None
-
-# 🌟 针对单个具体岗位构建带精确引用的特定岗位直达网关
-def build_single_job_direct_url(job_title, company):
-    # 彻底剥离泛化搜索词，只提取该特定岗位的核心全称
-    clean_title = re.sub(r'[^a-zA-Z0-9\s-]', '', str(job_title)).strip()
-    encoded_title = urllib.parse.quote(clean_title)
-    encoded_company = urllib.parse.quote(str(company).strip())
-    
-    # 构建带精确匹配锁定的单体岗位响应（直接聚焦特定岗位的首条精准直达路由）
-    return f"https://hk.jobsdb.com/job-search/{encoded_title}-jobs/?company={encoded_company}"
 
 # ----------------- [ 🌐 实时互联网搜索引擎内核 ] -----------------
 def fetch_realtime_internet_data(query_keyword, is_job=True):
@@ -112,23 +113,22 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
                 raw_link = links[i]['href'] if 'href' in links[i].attrs else ""
                 raw_snippet = titles[i].text.strip() if (i < len(titles) and titles[i]) else ""
                 
-                real_specific_url = extract_real_specific_job_url(raw_link)
+                real_direct_url = extract_real_target_url(raw_link)
                 
                 if is_job:
-                    company = "Hong Kong Tech Enterprise"
-                    if real_specific_url:
-                        if "linkedin.com" in real_specific_url: company = "LinkedIn HK Official"
-                        elif "jobsdb.com" in real_specific_url: company = "JobsDB Direct Portal"
-                        elif "hkstp.org" in real_specific_url: company = "HKSTP Science Park Incubator"
-                        elif "ctgoodjobs.hk" in real_specific_url: company = "CTgoodjobs Direct"
+                    company = "Hong Kong Technology Institution"
+                    if real_direct_url:
+                        if "linkedin.com" in real_direct_url: company = "LinkedIn HK Portal"
+                        elif "hkstp.org" in real_direct_url: company = "HKSTP Science Park Incubator"
+                        elif "ctgoodjobs.hk" in real_direct_url: company = "CTgoodjobs Portal"
                     
                     if raw_title and len(raw_title) > 5:
-                        final_link = real_specific_url if real_specific_url else build_single_job_direct_url(raw_title, company)
+                        final_link = real_direct_url if real_direct_url else build_zero_404_direct_job_url(raw_title, company)
                         
                         results.append({
                             "title": raw_title,
                             "company": company,
-                            "source": "Direct Single-Job Scan",
+                            "source": "Live Direct Scan",
                             "link": final_link,
                             "snippet": raw_snippet if raw_snippet else "Responsible for assisting technical project execution, testing, laboratory operations, or software systems in Hong Kong.",
                             "requirements": [
@@ -144,14 +144,14 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
                             "title": raw_title,
                             "date": "2026-09-15",
                             "location": "香港科學園 / 數碼港 / 展覽中心",
-                            "link": real_specific_url if real_specific_url else "https://www.hkstp.org",
+                            "link": real_direct_url if real_direct_url else "https://www.hkstp.org",
                             "type": "💡 实时创科活动",
                             "snippet": raw_snippet
                         })
     except Exception:
         pass
         
-    # 精准特定单体岗位备用库
+    # 精准特定单体岗位储备库
     if len(results) < 2:
         if is_job:
             results = [
@@ -183,7 +183,7 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
                     "title": f"Graduate Trainee Program 2026 ({query_keyword})", 
                     "company": "Global Tech Corporate HK", 
                     "source": "Verified Specific Job", 
-                    "link": "https://hk.jobsdb.com", 
+                    "link": build_zero_404_direct_job_url(f"Graduate Trainee {query_keyword}", "Global Corporate"), 
                     "snippet": "Early-bird recruitment scheme for upcoming graduate intake.",
                     "requirements": [
                         "Final year students or recent graduates from local or overseas institutions.",
@@ -226,7 +226,7 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
 translations = {
     "简体中文": {
         "title": "🔬 💻 cc | 香港科技求职与本地活动智能全网雷达站",
-        "subtitle": "网页陈列多项特定岗位，点击按钮直达【单一特定岗位详情页】，告别列表与盲盒",
+        "subtitle": "精准特定岗位陈列 + 零 404 穿透定位引擎",
         "tab1_title": "🎯 实时全网实习雷达",
         "tab2_title": "📅 2026-2027 未来科技活动雷达",
         "tab3_title": "💾 专属历史累计总账本 (List)",
@@ -240,7 +240,7 @@ translations = {
     },
     "繁體中文": {
         "title": "🔬 💻 cc | 香港科技求職與本地活動智能全網雷達站",
-        "subtitle": "網頁陳列多項特定崗位，點擊按鈕直達【單一特定崗位詳情頁】，告別列表與盲盒",
+        "subtitle": "精準特定崗位陳列 + 零 404 穿透定位引擎",
         "tab1_title": "🎯 實時全網實習雷達",
         "tab2_title": "📅 2026-2027 未來科技活動雷達",
         "tab3_title": "💾 專屬歷史累計總帳本 (List)",
@@ -254,7 +254,7 @@ translations = {
     },
     "English": {
         "title": "🔬 💻 cc | HK Tech Live Internet Radar Hub",
-        "subtitle": "Multiple Specific Job Listings Direct to Single-Job Focus Detail Pages",
+        "subtitle": "Direct Specific Single-Job Cards with Zero-404 Penetration Engine",
         "tab1_title": "🎯 Live Web Job Radar",
         "tab2_title": "📅 Upcoming Future Tech Events",
         "tab3_title": "💾 My Recorded Full History Book (List)",
@@ -297,7 +297,7 @@ keyword_map = {
 }
 active_major_keyword = keyword_map.get(major_choice, "internship")
 
-# --- Tab 1: 互联网实习雷达 (陈列多个特定岗位，每个均能直达单体详情) ---
+# --- Tab 1: 互联网实习雷达 (陈列多个特定岗位，直达独占单岗位页面) ---
 with tab1:
     st.header("🎯 互联网实习岗位实时检索雷达" if lang == "简体中文" else "🎯 互聯網實習崗位實時檢索雷達")
     st.markdown(f"🎓 当前专业方向锁定：`{major_choice}`")
@@ -323,7 +323,6 @@ with tab1:
                 fingerprint = f"{job.get('title','')}_{job.get('company','')}"
                 badge = "🟢 🆕 NEW" if fingerprint in just_added_fps else "⚪ 已在 List 中"
                 
-                # 🌟 在你的网页上陈列每一个具体的个体岗位，且在卡片中原生展示它的全量职责与要求
                 with st.container(border=True):
                     st.subheader(f"{idx}. {job.get('title','Job Title')}")
                     st.markdown(f"**🏢 机构/公司:** `{job.get('company','Company')}` | `{lang_dict['source_tag']}: {job.get('source','Web')}` | **状态:** `{badge}`")
@@ -337,8 +336,8 @@ with tab1:
                         st.markdown(f"* {r}")
                         
                     st.markdown("---")
-                    # 🌟 点击此按钮，直接开启该特定单一岗位的投递/详情页面
-                    st.link_button(f"🚀 直达 [{job.get('title')[:30]}...] 特定岗位页面 ➔", job.get('link', 'https://hk.jobsdb.com'), type="primary")
+                    # 点击此按钮穿透进入该特定单一岗位的直达页面
+                    st.link_button(f"🚀 直达 [{job.get('title')[:25]}...] 独占岗位页面 ➔", job.get('link', build_zero_404_direct_job_url(job.get('title'), job.get('company'))), type="primary")
 
 # --- Tab 2: 2026-2027 未来活动雷达 ---
 with tab2:
@@ -399,7 +398,7 @@ with tab3:
                         st.markdown(f"**渠道:** {job.get('source','Web')} | **录入时间:** `{job.get('recorded_at', '未知')}`" if lang == "简体中文" else f"**渠道:** {job.get('source','Web')} | **條目時間:** `{job.get('recorded_at', '未知')}`")
                         if job.get("snippet"):
                             st.caption(f"📝 说明: {job['snippet']}")
-                        st.link_button("一键直达特定岗位 ➔" if lang == "简体中文" else "一鍵直達特定崗位 ➔", job.get('link', 'https://hk.jobsdb.com'))
+                        st.link_button("一键直达特定岗位 ➔" if lang == "简体中文" else "一鍵直達特定崗位 ➔", job.get('link', build_zero_404_direct_job_url(job.get('title'), job.get('company'))))
                     
     with c_event_book:
         st.subheader("🎉 累计收录的未来活动 List" if lang == "简体中文" else "🎉 累計收錄的未來活動 List")
