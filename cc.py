@@ -54,7 +54,7 @@ def sync_and_append_data(current_items, filepath, is_job=True):
         
     return new_detected_count, old_fingerprints, just_added_fingerprints
 
-# 🌟 JobsDB 官方企业 Portal 直达路由（右侧直接展开全量岗位 Details 与 Apply）
+# 🌟 JobsDB 官方企业 Portal 直达路由
 def build_official_enterprise_url(company, job_keywords=""):
     comp_clean = str(company).strip()
     
@@ -82,9 +82,10 @@ def build_official_enterprise_url(company, job_keywords=""):
         core_query = " ".join(kw_list[:2]) if kw_list else "Research Assistant"
         return f"https://hk.jobsdb.com/jobs?keywords={urllib.parse.quote(core_query)}"
 
-# ----------------- [ 🎯 各专业真实雇主岗位海量库 ] -----------------
+# ----------------- [ 🎯 严格过滤匹配岗位内核（找不到即空，绝不凑数） ] -----------------
 def get_comprehensive_jobs(major_key, user_kw=""):
     key = major_key.lower()
+    user_kw_clean = str(user_kw).strip().lower()
     
     all_jobs_data = {
         "food": [
@@ -257,15 +258,23 @@ def get_comprehensive_jobs(major_key, user_kw=""):
         ]
     }
     
-    selected_pool = all_jobs_data.get("food")
-    for cat_name in all_jobs_data:
-        if cat_name in key:
-            selected_pool = all_jobs_data[cat_name]
-            break
-            
+    # 锁定选定专业类别（如果选的是 Show All，则合并所有数据库）
+    if key == "show all" or "all" in key:
+        selected_pool = []
+        for cat in all_jobs_data:
+            selected_pool.extend(all_jobs_data[cat])
+    else:
+        selected_pool = []
+        for cat_name in all_jobs_data:
+            if cat_name in key:
+                selected_pool = all_jobs_data[cat_name]
+                break
+                
+    # 严格关键词精准检索，找不到坚决不展示任何内容
     results = []
-    for item in selected_pool:
-        if not user_kw or any(k.lower() in item["title"].lower() or k.lower() in item["company"].lower() or k.lower() in item["snippet"].lower() for k in user_kw.split()):
+    if not user_kw_clean:
+        # 未填任何搜索词时，直接列出该专业下的真实关联岗位
+        for item in selected_pool:
             results.append({
                 "title": item["title"],
                 "company": item["company"],
@@ -274,20 +283,27 @@ def get_comprehensive_jobs(major_key, user_kw=""):
                 "snippet": item["snippet"],
                 "requirements": item["requirements"]
             })
-            
-    return results if results else [
-        {
-            "title": item["title"],
-            "company": item["company"],
-            "source": "JobsDB Official Portal",
-            "link": build_official_enterprise_url(item["company"], item["title"]),
-            "snippet": item["snippet"],
-            "requirements": item["requirements"]
-        } for item in selected_pool
-    ]
+    else:
+        # 输入了搜寻词时，进行强匹配（只有标答匹配时才加入）
+        search_terms = user_kw_clean.split()
+        for item in selected_pool:
+            match_str = f"{item['title']} {item['company']} {item['snippet']}".lower()
+            if all(term in match_str for term in search_terms):
+                results.append({
+                    "title": item["title"],
+                    "company": item["company"],
+                    "source": "JobsDB Official Portal",
+                    "link": build_official_enterprise_url(item["company"], item["title"]),
+                    "snippet": item["snippet"],
+                    "requirements": item["requirements"]
+                })
+                
+    return results
 
-# ----------------- [ 📅 2026-2027 本地创科活动全量数据库 ] -----------------
+# ----------------- [ 📅 严格过滤匹配活动内核（找不到即空） ] -----------------
 def get_comprehensive_events(major_key, user_kw=""):
+    user_kw_clean = str(user_kw).strip().lower()
+    
     events_pool = [
         {
             "title": "PolyU × NuttyShell Cybersecurity & Tech Hackathon 2026",
@@ -338,7 +354,17 @@ def get_comprehensive_events(major_key, user_kw=""):
             "snippet": "涵盖 AI 模拟面试、CV Clinic、Low-Altitude Economy 展示及实习项目现场面试。"
         }
     ]
-    return events_pool
+    
+    if not user_kw_clean:
+        return events_pool
+    else:
+        search_terms = user_kw_clean.split()
+        results = []
+        for ev in events_pool:
+            match_str = f"{ev['title']} {ev['location']} {ev['snippet']} {ev['type']}".lower()
+            if all(term in match_str for term in search_terms):
+                results.append(ev)
+        return results
 
 # ----------------- [ 三语界面字典 ] -----------------
 translations = {
@@ -352,7 +378,7 @@ translations = {
         "sidebar_major": "🎓 数据指挥中心：锁定你的专业方向",
         "search_placeholder": "输入搜索词精筛（如: polyu, lab, assistant）...",
         "search_btn": "⚡ 启动全网精选检索",
-        "search_loading": "正在同步 JobsDB 官方直达 Portal...",
+        "search_loading": "正在执行严格筛选逻辑...",
         "source_tag": "来源网关",
         "tab3_desc": "这里是你的专属 List 保险箱。新查找到的条目都会自动永久存留在这里："
     },
@@ -366,7 +392,7 @@ translations = {
         "sidebar_major": "🎓 數據指揮中心：鎖定你的專業方向",
         "search_placeholder": "輸入搜尋詞精篩（如: polyu, lab, assistant）...",
         "search_btn": "⚡ 啟動全網精選檢索",
-        "search_loading": "正在同步 JobsDB 官方直達 Portal...",
+        "search_loading": "正在執行嚴格篩選邏輯...",
         "source_tag": "來源網關",
         "tab3_desc": "這裡是你的專屬 List 保險箱。新查找到的條目都會自動永久存留在這裡："
     },
@@ -380,7 +406,7 @@ translations = {
         "sidebar_major": "🎓 Command Centre: Select Your Major",
         "search_placeholder": "Enter search terms (e.g. polyu, lab, assistant)...",
         "search_btn": "⚡ Launch Scan",
-        "search_loading": "Syncing JobsDB direct portal...",
+        "search_loading": "Executing strict filter logic...",
         "source_tag": "Source Gateway",
         "tab3_desc": "Your private list vault. Freshly scanned records are saved here permanently:"
     }
@@ -405,7 +431,7 @@ food_label = "Food Testing Science"
 major_choice = st.sidebar.selectbox("Majors:", [food_label, bio_label, comp_label, env_label, all_label], label_visibility="collapsed")
 
 keyword_map = {
-    all_label: "food",
+    all_label: "show all",
     comp_label: "computer", 
     bio_label: "biomedical", 
     env_label: "environmental", 
@@ -426,32 +452,36 @@ with tab1:
     if search_job_btn:
         with st.spinner(lang_dict["search_loading"]):
             live_scanned_jobs = get_comprehensive_jobs(active_major_keyword, user_input)
-            new_count, all_fps, just_added_fps = sync_and_append_data(live_scanned_jobs, JOB_DB, is_job=True)
             
-            if new_count > 0:
-                st.balloons()
-                st.success(f"🔥 为您精准捕获 **{len(live_scanned_jobs)}** 个 PolyU 及本地专业岗位！其中 **{new_count}** 个已存入 List！" if lang == "简体中文" else f"🔥 為您精準捕獲 **{len(live_scanned_jobs)}** 個 PolyU 及本地專業崗位！其中 **{new_count}** 個已存入 List！")
+            if not live_scanned_jobs:
+                st.warning("⚠️ 现场未检索到与筛选条件完全相符的工作，已按您的要求不展示不相关的替代数据。请尝试调整或更换搜寻关键词。" if lang == "简体中文" else "⚠️ 現場未檢索到與篩選條件完全相符的工作，已按您的要求不展示不相關的替代數據。請嘗試調整或更換搜尋關鍵詞。")
             else:
-                st.info("ℹ️ 现场为您呈现精准岗位（包含 PolyU 及各大雇主）。条目已自动同步至你的 List 保险箱中！" if lang == "简体中文" else "ℹ️ 現場為您呈現精準崗位（包含 PolyU 及各大僱主）。條目已自動同步至你的 List 保險箱中！")
-            
-            for idx, job in enumerate(live_scanned_jobs, 1):
-                fingerprint = f"{job.get('title','')}_{job.get('company','')}"
-                badge = "🟢 🆕 NEW" if fingerprint in just_added_fps else "⚪ 已在 List 中"
+                new_count, all_fps, just_added_fps = sync_and_append_data(live_scanned_jobs, JOB_DB, is_job=True)
                 
-                with st.container(border=True):
-                    st.subheader(f"{idx}. {job.get('title','Job Title')}")
-                    st.markdown(f"🏢 **真实雇主/机构:** `{job.get('company','Company')}`  |  `{lang_dict['source_tag']}: {job.get('source','JobsDB Portal')}`  |  **状态:** `{badge}`")
+                if new_count > 0:
+                    st.balloons()
+                    st.success(f"🔥 为您精准匹配到 **{len(live_scanned_jobs)}** 个完全符合条件的岗位！其中 **{new_count}** 个已存入 List！" if lang == "简体中文" else f"🔥 為您精準匹配到 **{len(live_scanned_jobs)}** 個完全符合條件的崗位！其中 **{new_count}** 個已存入 List！")
+                else:
+                    st.info(f"ℹ️ 找到 **{len(live_scanned_jobs)}** 个完全符合条件的岗位，均已在 List 中存留。" if lang == "简体中文" else f"ℹ️ 找到 **{len(live_scanned_jobs)}** 個完全符合條件的崗位，均已在 List 中存留。")
+                
+                for idx, job in enumerate(live_scanned_jobs, 1):
+                    fingerprint = f"{job.get('title','')}_{job.get('company','')}"
+                    badge = "🟢 🆕 NEW" if fingerprint in just_added_fps else "⚪ 已在 List 中"
                     
-                    st.markdown("#### 📝 岗位职责与工作内容 (Job Description)")
-                    st.write(job.get("snippet", "暂无简述"))
-                    
-                    st.markdown("#### 🎯 核心任职要求 (Key Requirements)")
-                    reqs = job.get("requirements", [])
-                    for r in reqs:
-                        st.markdown(f"* {r}")
+                    with st.container(border=True):
+                        st.subheader(f"{idx}. {job.get('title','Job Title')}")
+                        st.markdown(f"🏢 **真实雇主/机构:** `{job.get('company','Company')}`  |  `{lang_dict['source_tag']}: {job.get('source','JobsDB Portal')}`  |  **状态:** `{badge}`")
                         
-                    st.markdown("---")
-                    st.link_button(f"🌐 直达 JobsDB 查看 [{job.get('company')}] 右侧展开详情 ➔", job.get('link'), type="primary")
+                        st.markdown("#### 📝 岗位职责与工作内容 (Job Description)")
+                        st.write(job.get("snippet", "暂无简述"))
+                        
+                        st.markdown("#### 🎯 核心任职要求 (Key Requirements)")
+                        reqs = job.get("requirements", [])
+                        for r in reqs:
+                            st.markdown(f"* {r}")
+                            
+                        st.markdown("---")
+                        st.link_button(f"🌐 直达 JobsDB 查看 [{job.get('company')}] 右侧展开详情 ➔", job.get('link'), type="primary")
 
 # --- Tab 2: 2026-2027 未来科技活动雷达 ---
 with tab2:
@@ -466,24 +496,28 @@ with tab2:
     if search_ev_btn:
         with st.spinner("正在检索 2026-2027 香港本地创科活动与比赛..."):
             live_scanned_events = get_comprehensive_events(active_major_keyword, user_input_ev)
-            new_ev_count, all_ev_fps, just_added_ev_fps = sync_and_append_data(live_scanned_events, EVENT_DB, is_job=False)
             
-            if new_ev_count > 0:
-                st.toast(f"成功录入 {new_ev_count} 个未来新活动！")
-                st.success(f"🎉 捕获最新未来活动！现场呈现 **{len(live_scanned_events)}** 个活动情报，其中 **{new_ev_count}** 个新情报已吸纳进 List！" if lang == "简体中文" else f"🎉 捕獲最新未來活動！現場呈現 **{len(live_scanned_events)}** 個活動情報，其中 **{new_ev_count}** 個新情報已吸納進 List！")
+            if not live_scanned_events:
+                st.warning("⚠️ 未能找到符合您输入的活动关键词的匹配项，已按要求不显示任何不匹配的活动。" if lang == "简体中文" else "⚠️ 未能找到符合您輸入的活動關鍵詞的匹配項，已按要求不顯示任何不匹配的活動。")
             else:
-                st.info("ℹ️ 现场活动全量呈现。条目已同步至 List 保险箱。" if lang == "简体中文" else "ℹ️ 現場活動全量呈現。條目已同步至 List 保險箱。")
+                new_ev_count, all_ev_fps, just_added_ev_fps = sync_and_append_data(live_scanned_events, EVENT_DB, is_job=False)
                 
-            for idx, ev in enumerate(live_scanned_events, 1):
-                fingerprint = f"{ev.get('title','')}_{ev.get('date', '')}"
-                ev_badge = "🟢 🆕 NEW" if fingerprint in just_added_ev_fps else "⚪ 已在 List 中"
-                
-                with st.container(border=True):
-                    st.subheader(f"{ev.get('type','活动')} | {idx}. {ev.get('title','Event Title')}")
-                    st.info(f"📅 **举办/活动日期:** `{ev.get('date', '2026-2027')}`  |  📍 **地点:** `{ev.get('location', '香港')}`")
-                    if ev.get("snippet"):
-                        st.caption(f"📝 活动简要: {ev['snippet']}")
-                    st.link_button("前往活动官网/详情 ➔" if lang == "简体中文" else "前往活動官網/詳情 ➔", ev.get('link','https://www.polyu.edu.hk'))
+                if new_ev_count > 0:
+                    st.toast(f"成功录入 {new_ev_count} 个未来新活动！")
+                    st.success(f"🎉 捕获匹配未来活动！现场呈现 **{len(live_scanned_events)}** 个情报，其中 **{new_ev_count}** 个新情报已吸纳进 List！" if lang == "简体中文" else f"🎉 捕獲匹配未來活動！現場呈現 **{len(live_scanned_events)}** 個情報，其中 **{new_ev_count}** 個新情報已吸納進 List！")
+                else:
+                    st.info(f"ℹ️ 现场呈现 **{len(live_scanned_events)}** 个符合条件的活动，已同步至 List 保险箱。" if lang == "简体中文" else f"ℹ️ 現場呈現 **{len(live_scanned_events)}** 個符合條件的活動，已同步至 List 保險箱。")
+                    
+                for idx, ev in enumerate(live_scanned_events, 1):
+                    fingerprint = f"{ev.get('title','')}_{ev.get('date', '')}"
+                    ev_badge = "🟢 🆕 NEW" if fingerprint in just_added_ev_fps else "⚪ 已在 List 中"
+                    
+                    with st.container(border=True):
+                        st.subheader(f"{ev.get('type','活动')} | {idx}. {ev.get('title','Event Title')}")
+                        st.info(f"📅 **举办/活动日期:** `{ev.get('date', '2026-2027')}`  |  📍 **地点:** `{ev.get('location', '香港')}`")
+                        if ev.get("snippet"):
+                            st.caption(f"📝 活动简要: {ev['snippet']}")
+                        st.link_button("前往活动官网/详情 ➔" if lang == "简体中文" else "前往活動官網/詳情 ➔", ev.get('link','https://www.polyu.edu.hk'))
 
 # --- Tab 3: 历史累计中央总大账本 ---
 with tab3:
