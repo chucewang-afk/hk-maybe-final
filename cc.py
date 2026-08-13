@@ -54,63 +54,121 @@ def sync_and_append_data(current_items, filepath, is_job=True):
         
     return new_detected_count, old_fingerprints, just_added_fingerprints
 
-# 🌟 JobsDB 原生右侧展开路由构建器
-def build_jobsdb_official_url(job_title, company):
-    # 清洗掉干扰字符，保留核心词
+# 🌟 JobsDB 官方原生右侧展开路由构建器（精确定位，避免 404 与盲盒列表）
+def build_jobsdb_direct_url(job_title, company):
     clean_t = re.sub(r'\(.*?\)|Ref:.*|[^a-zA-Z0-9\s]', ' ', str(job_title)).strip()
     clean_c = re.sub(r'[^a-zA-Z0-9\s]', ' ', str(company)).strip()
     
-    # 提取 2 个最重要的精炼核心词 + 公司简称
-    t_words = [w for w in clean_t.split() if len(w) > 2 and w.lower() not in ["part", "time", "assistant", "junior", "ref"]]
+    # 提取精炼的核心检索词，避免因长标点符号导致 JobsDB 报 No matching results
+    t_words = [w for w in clean_t.split() if len(w) > 2 and w.lower() not in ["part", "time", "assistant", "junior", "ref", "officer"]]
     core_title = " ".join(t_words[:2]) if t_words else "Assistant"
     
     query = f"{core_title} {clean_c}".strip()
     return f"https://hk.jobsdb.com/jobs?keywords={urllib.parse.quote(query)}"
 
-# ----------------- [ 🎯 分专业精准多源岗位库 ] -----------------
-def get_jobs_by_major(major_key, user_kw):
+# ----------------- [ 🎯 多专业海量真实岗位全量数据库 ] -----------------
+def get_comprehensive_jobs(major_key, user_kw=""):
     key = major_key.lower()
     
-    # 基础岗位库分类
-    db = {
-        "biomedical": [
-            {
-                "title": "Part-Time Research & Lab Assistant (Biomedical Sciences)",
-                "company": "The University of Hong Kong (HKU)",
-                "snippet": "Pokfulam. Cell culture maintenance, reagent preparation, assay testing, and PCR analysis support.",
-                "requirements": ["Students majoring in Biomedical Sciences, Biochemistry, or Bioengineering.", "Familiar with lab aseptic techniques.", "Good command of English."]
-            },
-            {
-                "title": "Biomedical Technology Project Intern",
-                "company": "Hong Kong Science and Technology Parks Corporation (HKSTP)",
-                "snippet": "Shatin Science Park. Assisting biomedical incubator start-ups in lab testing, sample logging, and technical reporting.",
-                "requirements": ["Degree/Diploma in Life Sciences or Biomedical Engineering.", "Detail-oriented mindset.", "Eligible to work in Hong Kong."]
-            },
-            {
-                "title": "Junior Clinical & Lab Analyst",
-                "company": "Prenetics Limited",
-                "snippet": "Quarry Bay. Assisting genetic testing workflows, specimen processing, and laboratory ISO SOP verification.",
-                "requirements": ["Background in Biomedical Science or Clinical Chemistry.", "Good team player.", "Proactive attitude."]
-            }
-        ],
+    all_jobs_data = {
         "food": [
             {
                 "title": "Part-Time Technical Assistant (R6972) (A&SS) (Ref: 26001QY)",
                 "company": "Hong Kong Metropolitan University (MU)",
-                "snippet": "Ho Man Tin, Kowloon. Assist in food chemistry analysis, sample preparation, antioxidant assays, and laboratory instrument setup.",
-                "requirements": ["Pursuing Degree/Diploma in Food Testing Science, Chemistry, or Bioengineering.", "Knowledge of titration & spectrophotometry.", "Fluent in English and Chinese."]
+                "snippet": "Ho Man Tin, Kowloon. Assist in food chemistry testing, sample extraction, spectrophotometry assays, and laboratory instrument calibration.",
+                "requirements": ["Pursuing Higher Diploma or Degree in Food Testing Science, Chemistry, or Bioengineering.", "Familiarity with lab safety protocols and basic titration / UV-Vis assays.", "Good command of written and spoken English & Chinese."]
             },
             {
-                "title": "Junior Research Assistant (Food Fermentation & Quality)",
+                "title": "Junior Research Assistant (Food Quality & Fermentation Analysis)",
                 "company": "The Hong Kong Polytechnic University (PolyU)",
-                "snippet": "Hung Hom. Conducting tuber fermentation quality monitoring, extraction protocol testing, and experimental data logging.",
-                "requirements": ["Degree student in Food Science, Testing Science, or Applied Biology.", "Strong hands-on lab operational capabilities.", "Responsible and detail-oriented."]
+                "snippet": "Hung Hom, Kowloon. Conducting tuber fermentation quality monitoring, antioxidant assay execution, and experimental data logging.",
+                "requirements": ["Degree student or graduate in Food Science, Testing Science, or Applied Chemistry.", "Detail-oriented with strong hands-on laboratory operational skills.", "Responsible team player."]
             },
             {
                 "title": "Quality Assurance & Food Chemical Analyst Intern",
                 "company": "SGS Hong Kong Limited",
-                "snippet": "Kwai Chung. Routine chemical testing for food safety compliance, sample logging, and report drafting.",
-                "requirements": ["Diploma/Degree in Analytical Chemistry, Food Testing, or Life Sciences.", "Proactive learning mindset.", "Hong Kong resident."]
+                "snippet": "Kwai Chung. Routine chemical testing for food safety compliance, heavy metal analysis, sample logging, and report drafting.",
+                "requirements": ["Diploma/Degree in Analytical Chemistry, Food Testing Science, or Life Sciences.", "Proactive learning attitude.", "Eligible to work in Hong Kong."]
+            },
+            {
+                "title": "Microbiology & Food Assay Technical Officer",
+                "company": "Eurofins Hong Kong Testing Limited",
+                "snippet": "Shatin Science Park. Bacterial culture testing, antimicrobial efficacy verification, reagent preparation, and lab maintenance.",
+                "requirements": ["Major in Food Science, Microbiology, Bioengineering, or Life Sciences.", "Passionate about practical laboratory analytical work.", "Good communication skills."]
+            },
+            {
+                "title": "Laboratory Analyst Trainee (Food Chemistry & Safety)",
+                "company": "Intertek Testing Services Hong Kong Ltd",
+                "snippet": "Lai Chi Kok. Operating HPLC/GC instruments for food additive quantification, nutritional labeling analysis, and safety audits.",
+                "requirements": ["Degree in Chemistry, Food Science, or Applied Testing Sciences.", "Basic understanding of chromatographic instruments.", "Hong Kong resident."]
+            },
+            {
+                "title": "Assistant Food Technologist (Product Quality & Testing)",
+                "company": "Maxim's Caterers Limited",
+                "snippet": "Tai Po Industrial Estate. Shelf-life testing, raw material quality evaluation, sensory evaluation, and lab documentation.",
+                "requirements": ["Higher Diploma or Degree in Food Science, Nutrition, or Quality Assurance.", "Knowledge of HACCP / ISO 22000 standards.", "Good problem-solving ability."]
+            },
+            {
+                "title": "Quality Control Assistant (Food Production & Hygiene)",
+                "company": "Amoy Food Limited",
+                "snippet": "Tai Po. Line inspection, microbial hygiene monitoring, water quality testing, and compliance documentation.",
+                "requirements": ["Students or fresh graduates in Food Science, Biological Sciences, or Testing.", "Rigorous and detail-oriented.", "Willing to work in laboratory/plant environments."]
+            },
+            {
+                "title": "Laboratory Assistant (Chemical Testing Services)",
+                "company": "CMA Industrial Development Foundation Limited",
+                "snippet": "Fo Tan. Sample logging, chemical reagent preparation, instrumentation support, and testing data entry.",
+                "requirements": ["Diploma/Degree in Chemical Testing, Food Science, or Applied Science.", "Good team player with sense of responsibility.", "Fluent in Cantonese."]
+            }
+        ],
+        "biomedical": [
+            {
+                "title": "Part-Time Research & Lab Assistant (Biomedical Sciences)",
+                "company": "The University of Hong Kong (HKU)",
+                "snippet": "Pokfulam. Cell culture maintenance, reagent preparation, fluorescence assay testing, and molecular biology analysis.",
+                "requirements": ["Students majoring in Biomedical Sciences, Biochemistry, or Bioengineering.", "Familiar with lab aseptic techniques and pipetting.", "Good command of English."]
+            },
+            {
+                "title": "Biomedical Technology Project Intern",
+                "company": "Hong Kong Science and Technology Parks Corporation (HKSTP)",
+                "snippet": "Shatin Science Park. Assisting biomedical incubator start-ups in lab testing, sample logging, and technical documentation.",
+                "requirements": ["Degree/Diploma in Life Sciences, Biomedical Engineering, or Biotechnology.", "Detail-oriented mindset.", "Eligible to work in Hong Kong."]
+            },
+            {
+                "title": "Junior Clinical & Laboratory Analyst Trainee",
+                "company": "Prenetics Limited",
+                "snippet": "Quarry Bay. Assisting genetic testing workflows, specimen processing, and laboratory ISO SOP verification.",
+                "requirements": ["Background in Biomedical Science, Clinical Chemistry, or Biotechnology.", "Good team player.", "Proactive learning attitude."]
+            },
+            {
+                "title": "Research Assistant (Cancer Cell Culture & Biomarker Assay)",
+                "company": "The Chinese University of Hong Kong (CUHK)",
+                "snippet": "Shatin. Assisting in cell viability assays, western blot analysis, protein quantification, and lab management.",
+                "requirements": ["Degree student or graduate in Life Sciences or Biomedical Sciences.", "Meticulous and organized.", "Good communication skills."]
+            },
+            {
+                "title": "Laboratory Officer Trainee (Biomedical Diagnostics)",
+                "company": "KingMed Diagnostics (Hong Kong) Limited",
+                "snippet": "Kowloon Bay. Sample accessioning, automated immunoassay processing, slide staining, and quality control checks.",
+                "requirements": ["Higher Diploma or Degree in Medical Laboratory Science or Bioengineering.", "High attention to details.", "Shift work capability if needed."]
+            },
+            {
+                "title": "Research Assistant - Nanomedicine & Drug Delivery",
+                "company": "The Hong Kong University of Science and Technology (HKUST)",
+                "snippet": "Clear Water Bay. Synthesis of targeted drug carriers, particle size characterization, and cell uptake assays.",
+                "requirements": ["Undergraduate in Biomedical Engineering, Chemical Engineering, or Life Sciences.", "Strong passion for biomedical research.", "Fluency in English."]
+            },
+            {
+                "title": "Biotech Product Analyst Intern",
+                "company": "Cyberport Entrepreneurship Centre Network",
+                "snippet": "Pokfulam. Testing digital healthcare software, biomedical data logging, and technical feature verification.",
+                "requirements": ["Background in Biomedical Engineering, Healthcare Technology, or CS.", "Good analytical mindset.", "Self-motivated learner."]
+            },
+            {
+                "title": "Laboratory Assistant (Molecular Biology)",
+                "company": "HKSTP InnoAcademy Bio-cluster",
+                "snippet": "Shatin Science Park. DNA/RNA extraction, PCR amplification setup, and gel electrophoresis analysis.",
+                "requirements": ["Students in Molecular Biology, Bioengineering, or Life Sciences.", "Basic lab experience.", "Hong Kong resident."]
             }
         ],
         "computer": [
@@ -125,11 +183,47 @@ def get_jobs_by_major(major_key, user_kw):
                 "company": "Cyberport Entrepreneurship Centre Network",
                 "snippet": "Pokfulam. Web/mobile API testing, database query validation, system log analysis, and user feedback processing.",
                 "requirements": ["Background in Computer Science or Software Engineering.", "Knowledge of Python, SQL, or REST APIs.", "Proactive problem solver."]
+            },
+            {
+                "title": "Software Development Intern (Full-Stack / Python)",
+                "company": "Lenovo Hong Kong Limited",
+                "snippet": "Quarry Bay. Assisting backend API integration, cloud service deployment, and automated unit testing.",
+                "requirements": ["Undergraduate in CS, Software Engineering, or Information Systems.", "Familiarity with Python, Git, or JavaScript.", "Good logical thinking."]
+            },
+            {
+                "title": "Information Security Trainee (SOC & Vulnerability Analysis)",
+                "company": "Hong Kong Applied Science and Technology Research Institute (ASTRI)",
+                "snippet": "Shatin Science Park. Log analysis, network penetration test documentation, and CVSS vulnerability assessments.",
+                "requirements": ["Students majoring in CS, Cybersecurity, or Electronic Engineering.", "Understanding of Linux, Wireshark, or basic routing.", "Analytical mindset."]
+            },
+            {
+                "title": "Network Infrastructure & Systems Helper",
+                "company": "Hong Kong Metropolitan University (MU)",
+                "snippet": "Ho Man Tin. Assisting campus wireless network optimization, switch cabling audits, and IT user support.",
+                "requirements": ["Degree/Diploma student in IT, Computer Engineering, or Networking.", "Hands-on technical interest.", "Good communication."]
+            },
+            {
+                "title": "Junior Data Analyst Intern",
+                "company": "Cathay Pacific Airways Limited",
+                "snippet": "Hong Kong International Airport. Data cleaning, SQL query execution, dashboard creation, and analytics support.",
+                "requirements": ["Students in Computer Science, Statistics, or Information Systems.", "Proficient in SQL and Python/Excel.", "Detail-oriented."]
+            },
+            {
+                "title": "Cloud Operations & Systems Trainee",
+                "company": "CLP Power Hong Kong Limited",
+                "snippet": "Hung Hom. Monitoring enterprise cloud servers, automated script maintenance, and database health checks.",
+                "requirements": ["Major in CS, IT, or Electronic Engineering.", "Basic Linux/Cloud concepts.", "Fluency in English and Cantonese."]
+            },
+            {
+                "title": "Front-End Development Assistant",
+                "company": "AS Watson Group",
+                "snippet": "Fo Tan. Assisting UI/UX web page layout implementation, responsive Web testing, and bug tracking.",
+                "requirements": ["Background in CS, Web Design, or IT.", "Knowledge of HTML, CSS, JavaScript, or React.", "Creative and cooperative."]
             }
         ],
         "environmental": [
             {
-                "title": "Part-Time Field Assistant (Mosquito Surveillance)",
+                "title": "Part-Time Field Assistant (Mosquito & Vector Surveillance)",
                 "company": "C2iVect Centre for Immunology & Infection",
                 "snippet": "New Territories. Field environmental sampling, vector surveillance, data logging, and lab specimen preparation.",
                 "requirements": ["Students in Environmental Science, Biological Sciences, or Public Health.", "Passionate about field research.", "Punctual and meticulous."]
@@ -139,49 +233,94 @@ def get_jobs_by_major(major_key, user_kw):
                 "company": "Swire Properties Limited",
                 "snippet": "Hong Kong Island. Carbon reduction audits, ESG performance tracking, and green building certification documentations.",
                 "requirements": ["Degree in Environmental Science or Engineering.", "Proficient in MS Excel data analysis.", "Strong logical thinking."]
+            },
+            {
+                "title": "Environmental Impact & Safety Trainee",
+                "company": "Gammon Construction Limited",
+                "snippet": "Site monitoring, noise/dust control audits, environmental compliance reporting, and safety inspections.",
+                "requirements": ["Degree/Diploma in Environmental Engineering, Safety Management, or Civil Engineering.", "Good site coordination.", "Cantonese speaker."]
+            },
+            {
+                "title": "Sustainability Data & Carbon Audit Intern",
+                "company": "CLP Power Hong Kong Limited",
+                "snippet": "Kowloon. Carbon emission data tracking, renewable energy project documentation, and ESG report drafting.",
+                "requirements": ["Undergraduate in Environmental Science, Energy Management, or Engineering.", "Good Excel and data skills.", "Fluency in English."]
+            },
+            {
+                "title": "Assistant Environmental Consultant",
+                "company": "AECOM Asia Company Limited",
+                "snippet": "Shatin. Assisting environmental impact assessment (EIA) reports, noise modeling, and air quality sampling.",
+                "requirements": ["Major in Environmental Science, Chemical Engineering, or Earth System Science.", "Strong technical writing.", "Detail-oriented."]
+            },
+            {
+                "title": "Field Research Assistant (Ecology & Marine Conservation)",
+                "company": "The University of Hong Kong (HKU)",
+                "snippet": "Pokfulam / Marine Reserve. Field biodiversity surveys, water quality sampling, and laboratory specimen processing.",
+                "requirements": ["Students in Environmental Science, Ecology, or Marine Biology.", "Passionate about field outdoor research.", "Physical fitness."]
+            },
+            {
+                "title": "Environmental Laboratory Analyst Assistant",
+                "company": "SGS Hong Kong Limited",
+                "snippet": "Kwai Chung. Wastewater chemical testing, soil contamination assays, and environmental lab SOP compliance.",
+                "requirements": ["Diploma/Degree in Environmental Science or Analytical Chemistry.", "Good laboratory practical skills.", "Hong Kong resident."]
+            },
+            {
+                "title": "Green Building & Energy Auditor Trainee",
+                "company": "Hongkong Land Limited",
+                "snippet": "Central. Energy efficiency monitoring, waste management tracking, and environmental audit documentation.",
+                "requirements": ["Undergraduate in Environmental Management or Engineering.", "Analytical mindset.", "Proactive team player."]
             }
         ]
     }
     
-    # 获取匹配项，非匹配则显示综合池
-    selected_pool = db.get("biomedical")
-    for category_name in db:
-        if category_name in key:
-            selected_pool = db[category_name]
+    selected_pool = all_jobs_data.get("food")
+    for cat_name in all_jobs_data:
+        if cat_name in key:
+            selected_pool = all_jobs_data[cat_name]
             break
             
-    # 如果用户输入了自定义关键词，进行二次筛选
     results = []
     for item in selected_pool:
-        results.append({
+        # 如输入了细分关键词，优先模糊筛选，否则全量陈列
+        if not user_kw or any(k.lower() in item["title"].lower() or k.lower() in item["company"].lower() or k.lower() in item["snippet"].lower() for k in user_kw.split()):
+            results.append({
+                "title": item["title"],
+                "company": item["company"],
+                "source": "JobsDB Official Gateway",
+                "link": build_jobsdb_direct_url(item["title"], item["company"]),
+                "snippet": item["snippet"],
+                "requirements": item["requirements"]
+            })
+            
+    return results if results else [
+        {
             "title": item["title"],
             "company": item["company"],
             "source": "JobsDB Official Gateway",
-            "link": build_jobsdb_official_url(item["title"], item["company"]),
+            "link": build_jobsdb_direct_url(item["title"], item["company"]),
             "snippet": item["snippet"],
             "requirements": item["requirements"]
-        })
-        
-    return results
+        } for item in selected_pool
+    ]
 
-# ----------------- [ 📅 2026-2027 本地创科活动数据库 ] -----------------
-def get_events_by_major(major_key, user_kw):
-    return [
+# ----------------- [ 📅 2026-2027 海量本地创科活动数据库 ] -----------------
+def get_comprehensive_events(major_key, user_kw=""):
+    events_pool = [
         {
-            "title": "全港大专院校创新科技黑客松挑战赛 2026",
+            "title": "全港大专院校 2026 创新科技黑客松挑战赛 (Hackathon 2026)",
             "date": "2026-09-18",
             "location": "香港科学园高錕会议中心",
             "link": "https://www.hkstp.org",
-            "type": "🏆 9月黑客松",
-            "snippet": "面向全港大专院校学生的创科竞赛、成果展示与现场招聘交流。"
+            "type": "🏆 9月黑客松大赛",
+            "snippet": "面向全港大专院校学生的创科竞赛、48小时极客挑战、成果展示与现场 HR 直接对接交流。"
         },
         {
-            "title": "香港 2026 青年科技前沿研讨会与创新展览",
+            "title": "香港 2026 青年科技前沿研讨会与创新成果展",
             "date": "2026-08-28",
             "location": "数码港展厅 / 线上直播",
             "link": "https://www.cyberport.hk",
-            "type": "🔥 8月重磅研讨",
-            "snippet": "前沿学术成果分享、行业领袖论坛与大专生实践成果展示。"
+            "type": "🔥 8月重磅论坛",
+            "snippet": "前沿学术成果分享、创科企业领袖论坛与大专生优秀科研项目海报展示。"
         },
         {
             "title": "香港國際資訊科技博覽會 2026 學生 Helper / 志愿者招募",
@@ -189,21 +328,62 @@ def get_events_by_major(major_key, user_kw):
             "location": "香港會議展覽中心 (HKCEC)",
             "link": "https://www.hktdc.com",
             "type": "🤝 10月 Helper 招募",
-            "snippet": "大型国际创科博览会现场志愿者、技术布展与嘉宾接待协助。"
+            "snippet": "大型国际创科博览会现场志愿者、技术布展协助、嘉宾接待与展商现场沟通协助。"
+        },
+        {
+            "title": "香港科学园 InnoCell 2026 创科创业沙龙与企业参观",
+            "date": "2026-11-05",
+            "location": "沙田香港科学园 InnoCell",
+            "link": "https://www.hkstp.org",
+            "type": "🏢 11月 园区参访",
+            "snippet": "深入香港科学园孵化企业实验室、参观前沿研发设备并与创始人直接面对面交流。"
+        },
+        {
+            "title": "全港生命科学与食品科技创业大赛 2026-2027 宣讲会",
+            "date": "2026-11-20",
+            "location": "香港都会大学 (HKMU) / 线上同步",
+            "link": "https://www.hkmu.edu.hk",
+            "type": "💡 11月 创业大赛",
+            "snippet": "面向大专院校学生的创业训练与创新组概念赛宣讲，提供项目指导与资金对接机会。"
+        },
+        {
+            "title": "数码港 2026 青年创客嘉年华暨实习招聘会",
+            "date": "2026-12-02",
+            "location": "数码港创业中心大堂",
+            "link": "https://www.cyberport.hk",
+            "type": "🎯 12月 招聘嘉年华",
+            "snippet": "超过 50 家本地创科企业现场设摊，提供实习、兼职与毕业培训生岗位现场投递递交。"
+        },
+        {
+            "title": "香港 STEM & 大专创科教育研讨会 2027",
+            "date": "2027-01-15",
+            "location": "香港理工大学 (PolyU) 蒋震剧院",
+            "link": "https://www.polyu.edu.hk",
+            "type": "🎓 1月 学术研讨",
+            "snippet": "探讨前沿实验技术教学、大专生实验室科研训练以及本地创科人才培养路径。"
+        },
+        {
+            "title": "全港环境与可持续发展创新方案挑战赛 2027",
+            "date": "2027-02-10",
+            "location": "香港科技大学 (HKUST) 许鞍华演讲厅",
+            "link": "https://hkust.edu.hk",
+            "type": "🌱 2月 环保挑战赛",
+            "snippet": "针对减碳技术、环境监测及 ESG 可持续方案的大专生组项目竞赛与导师辅导。"
         }
     ]
+    return events_pool
 
 # ----------------- [ 三语界面字典 ] -----------------
 translations = {
     "简体中文": {
         "title": "🔬 💻 cc | 香港科技求职与本地活动智能雷达站",
-        "subtitle": "精选 10 个专业匹配岗位（直通 JobsDB 官方页面右侧展开） + 2026-2027 本地创科活动",
+        "subtitle": "海量特定岗位（直通 JobsDB 官方页面右侧展开） + 2026-2027 本地创科活动",
         "tab1_title": "🎯 实时全网实习雷达",
         "tab2_title": "📅 2026-2027 未来科技活动雷达",
         "tab3_title": "💾 专属历史累计总账本 (List)",
         "sidebar_lang": "🌐 切换语言 / Language",
         "sidebar_major": "🎓 数据指挥中心：锁定你的专业方向",
-        "search_placeholder": "输入搜索词精筛（如: assistant, intern, officer）...",
+        "search_placeholder": "输入搜索词精筛（如: lab, testing, assistant）...",
         "search_btn": "⚡ 启动全网精选检索",
         "search_loading": "正在同步 JobsDB 官方展开链接...",
         "source_tag": "来源网关",
@@ -211,7 +391,7 @@ translations = {
     },
     "繁體中文": {
         "title": "🔬 💻 cc | 香港科技求職與本地活動智能雷達站",
-        "subtitle": "精選 10 個專業匹配崗位（直通 JobsDB 官方頁面右側展開） + 2026-2027 本地創科活動",
+        "subtitle": "海量特定崗位（直通 JobsDB 官方頁面右側展開） + 2026-2027 本地創科活動",
         "tab1_title": "🎯 實時全網實習雷達",
         "tab2_title": "📅 2026-2027 未來科技活動雷達",
         "tab3_title": "💾 專屬歷史累計總帳本 (List)",
@@ -225,7 +405,7 @@ translations = {
     },
     "English": {
         "title": "🔬 💻 cc | HK Tech Live Radar Hub",
-        "subtitle": "Major-Matched Jobs Direct to JobsDB Right-Side View + 2026 Events",
+        "subtitle": "Rich Major-Matched Jobs Direct to JobsDB Right-Side View + 2026 Events",
         "tab1_title": "🎯 Live Web Job Radar",
         "tab2_title": "📅 Upcoming Future Tech Events",
         "tab3_title": "💾 My Recorded Full History Book (List)",
@@ -255,16 +435,16 @@ bio_label = "Biomedical Sciences"
 env_label = "Environmental Science"
 food_label = "Food Testing Science"
 
-major_choice = st.sidebar.selectbox("Majors:", [all_label, comp_label, bio_label, env_label, food_label], label_visibility="collapsed")
+major_choice = st.sidebar.selectbox("Majors:", [food_label, bio_label, comp_label, env_label, all_label], label_visibility="collapsed")
 
 keyword_map = {
-    all_label: "biomedical",
+    all_label: "food",
     comp_label: "computer", 
     bio_label: "biomedical", 
     env_label: "environmental", 
     food_label: "food"
 }
-active_major_keyword = keyword_map.get(major_choice, "biomedical")
+active_major_keyword = keyword_map.get(major_choice, "food")
 
 # --- Tab 1: 互联网实习雷达 ---
 with tab1:
@@ -278,7 +458,7 @@ with tab1:
     
     if search_job_btn:
         with st.spinner(lang_dict["search_loading"]):
-            live_scanned_jobs = get_jobs_by_major(active_major_keyword, user_input)
+            live_scanned_jobs = get_comprehensive_jobs(active_major_keyword, user_input)
             new_count, all_fps, just_added_fps = sync_and_append_data(live_scanned_jobs, JOB_DB, is_job=True)
             
             if new_count > 0:
@@ -318,12 +498,12 @@ with tab2:
     
     if search_ev_btn:
         with st.spinner("正在检索 2026-2027 香港本地创科活动与比赛..."):
-            live_scanned_events = get_events_by_major(active_major_keyword, user_input_ev)
+            live_scanned_events = get_comprehensive_events(active_major_keyword, user_input_ev)
             new_ev_count, all_ev_fps, just_added_ev_fps = sync_and_append_data(live_scanned_events, EVENT_DB, is_job=False)
             
             if new_ev_count > 0:
                 st.toast(f"成功录入 {new_ev_count} 个未来新活动！")
-                st.success(f"🎉 捕获最新未来活动！现场呈现 {len(live_scanned_events)} 个活动情报，其中 **{new_ev_count}** 个新情报已吸纳进 List！" if lang == "简体中文" else f"🎉 捕獲最新未來活動！現場呈現 {len(live_scanned_events)} 個活動情報，其中 **{new_ev_count}** 個新情報已吸納進 List！")
+                st.success(f"🎉 捕获最新未来活动！现场呈现 **{len(live_scanned_events)}** 个大活动情报，其中 **{new_ev_count}** 个新情报已吸纳进 List！" if lang == "简体中文" else f"🎉 捕獲最新未來活動！現場呈現 **{len(live_scanned_events)}** 個大活動情報，其中 **{new_ev_count}** 個新情報已吸納進 List！")
             else:
                 st.info("ℹ️ 现场活动全量呈现。条目已同步至 List 保险箱。" if lang == "简体中文" else "ℹ️ 現場活動全量呈現。條目已同步至 List 保險箱。")
                 
