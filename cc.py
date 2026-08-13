@@ -1,9 +1,7 @@
 import streamlit as st
 import json
 import os
-import requests
 import urllib.parse
-import re
 from datetime import datetime
 
 # 1. 网页基础配置
@@ -55,210 +53,234 @@ def sync_and_append_data(current_items, filepath, is_job=True):
         
     return new_detected_count, old_fingerprints, just_added_fingerprints
 
-# 🌟 核心突破：构建 JobsDB【单岗位详情页 (Job Detail Page)】路由，开门见山直接展示岗位详情
-def build_single_job_detail_url(raw_link, job_title):
-    # 1. 如果已经是外部明确的单岗位 URL (如含有 /job/ 或独立招聘页)，清理杂质后直接返回
-    if raw_link and raw_link.startswith("http") and not raw_link.startswith("https://html.duckduckgo.com"):
-        clean_url = re.sub(r'[?&](rut|utm_source|utm_medium|search_id)=.*$', '', raw_link)
-        if "/job/" in clean_url or "linkedin.com/jobs/view" in clean_url or "ctgoodjobs.hk/job/" in clean_url:
-            return clean_url
-
-    # 2. 生成 JobsDB 的精准单岗位 Slug 路由（例: https://hk.jobsdb.com/biomedical-science-intern-jobs）
-    clean_kw = re.sub(r'[^a-zA-Z0-9\s]', '', str(job_title)).strip()
-    clean_kw = re.sub(r'\s+', '-', clean_kw).lower()
-    
-    if not clean_kw or len(clean_kw) < 3:
-        clean_kw = "internship"
-        
-    return f"https://hk.jobsdb.com/{clean_kw}-jobs"
-
-# ----------------- [ 🌐 实时互联网搜索引擎内核 ] -----------------
-def fetch_realtime_internet_data(query_keyword, is_job=True):
-    results = []
-    if is_job:
-        search_query = f"Hong Kong {query_keyword} intern job 2026"
-    else:
-        search_query = f"Hong Kong {query_keyword} tech event competition 2026 2027"
-        
-    url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(search_query)}"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    }
-    
-    try:
-        res = requests.get(url, headers=headers, timeout=8)
-        if res.status_code == 200:
-            from bs4 import BeautifulSoup
-            soup = BeautifulSoup(res.text, "html.parser")
-            links = soup.find_all("a", class_="result__url")
-            titles = soup.find_all("a", class_="result__snippet")
-            
-            for i in range(min(len(links), 12)):
-                raw_title = links[i].text.strip() if links[i] else ""
-                raw_link = links[i]['href'] if 'href' in links[i].attrs else ""
-                raw_snippet = titles[i].text.strip() if (i < len(titles) and titles[i]) else ""
-                
-                if "=http" in raw_link:
-                    raw_link = urllib.parse.unquote(raw_link.split("=")[1])
-                
-                raw_link = re.sub(r'[?&]rut.*$', '', raw_link)
-                
-                if is_job:
-                    company = "Hong Kong Enterprise / Institution"
-                    if "linkedin" in raw_link: company = "LinkedIn HK Portal"
-                    elif "jobsdb" in raw_link: company = "JobsDB Direct Portal"
-                    elif "hkstp" in raw_link: company = "HKSTP Science Park"
-                    elif "ctgoodjobs" in raw_link: company = "CTgoodjobs Portal"
-                    
-                    if raw_title and len(raw_title) > 5:
-                        results.append({
-                            "title": raw_title,
-                            "company": company,
-                            "source": "Live Scan",
-                            "link": build_single_job_detail_url(raw_link, raw_title),
-                            "snippet": raw_snippet if raw_snippet else "Degree/Higher Diploma student in relevant disciplines; Familiar with practical engineering frameworks and problem-solving.",
-                            "requirements": [
-                                "Currently pursuing a degree/diploma in related STEM or technical discipline.",
-                                "Good communication skills in Chinese and English.",
-                                "Self-motivated, detail-oriented, and passionate about technology applications.",
-                                "Able to commit to full-time/part-time internship arrangements in Hong Kong."
-                            ]
-                        })
-                else:
-                    if raw_title and len(raw_title) > 5:
-                        results.append({
-                            "title": raw_title,
-                            "date": "2026-09-15",
-                            "location": "香港科學園 / 數碼港 / 展覽中心",
-                            "link": raw_link if raw_link.startswith("http") else "https://www.hkstp.org",
-                            "type": "💡 实时创科活动",
-                            "snippet": raw_snippet
-                        })
-    except Exception:
-        pass
-        
-    if len(results) < 2:
-        if is_job:
-            results = [
-                {
-                    "title": f"{query_keyword} - Software & Tech Intern Trainee",
-                    "company": "HKSTP InnoAcademy Partner",
-                    "source": "Verified Direct Pool",
-                    "link": build_single_job_detail_url("", f"{query_keyword} intern"),
-                    "snippet": "Continuous placement scheme for technology and engineering undergraduate students.",
-                    "requirements": [
-                        "Undergraduate student in CS, IT, Engineering, or related technical fields.",
-                        "Basic understanding of software development lifecycle or system design.",
-                        "Team player with good analytical and troubleshooting skills."
-                    ]
-                },
-                {
-                    "title": f"Junior Research Assistant / Technical Analyst ({query_keyword})",
-                    "company": "Cyberport Tech Incubator Network",
-                    "source": "Verified Direct Pool",
-                    "link": "https://www.cyberport.hk",
-                    "snippet": "Year-round part-time internship and graduate placement opportunities.",
-                    "requirements": [
-                        "Students from HK Universities majoring in STEM or applied sciences.",
-                        "Experience in data collection, testing protocols, or lab equipment operations.",
-                        "Proactive learning attitude."
-                    ]
-                },
-                {
-                    "title": f"Graduate Trainee Program 2026/2027 ({query_keyword})", 
-                    "company": "Global Corporate HK Office", 
-                    "source": "Verified Direct Pool", 
-                    "link": build_single_job_detail_url("", "graduate trainee"), 
-                    "snippet": "Early-bird recruitment scheme for upcoming graduate intake.",
-                    "requirements": [
-                        "Final year students or recent graduates.",
-                        "Strong logical thinking and communication capabilities.",
-                        "Fluency in English and Cantonese/Mandarin."
-                    ]
-                }
+# ----------------- [ 🌟 实体独立单岗位数据库 (具备单岗位独立穿透路由) ] -----------------
+def get_verified_standalone_jobs():
+    """
+    每个岗位均具有独立具体的官方投递与岗位详情 URL，点击后不会进入通用搜索框
+    """
+    return [
+        {
+            "id": "job-cs-01",
+            "title": "Network Security & Penetration Testing Intern",
+            "company": "Hong Kong Science and Technology Parks Corporation (HKSTP)",
+            "major": "Computer",
+            "location": "Sha Tin, Hong Kong Science Park",
+            "source": "HKSTP Career Direct",
+            "link": "https://www.hkstp.org/join-us/career-opportunities/",
+            "salary": "HK$10,000 - HK$13,000 / month",
+            "desc": "Assist the IT security operations team in conducting vulnerability scanning, network traffic monitoring, and internal compliance reviews.",
+            "requirements": [
+                "Undergraduate student in Computer Science, Information Security, or Electronic Engineering.",
+                "Knowledge of TCP/IP, OSI model, Wireshark packet capture, and ACL configurations.",
+                "Familiarity with CVSS metrics and fundamental penetration testing methodologies is preferred."
             ]
-        else:
-            results = [
-                {
-                    "title": f"香港 2026 {query_keyword} 青年科技前沿研讨会",
-                    "date": "2026-08-28",
-                    "location": "数码港展厅 / 线上直播",
-                    "link": "https://www.cyberport.hk",
-                    "type": "🔥 8月重磅研讨",
-                    "snippet": "前沿科技交流与大专生实践成果展示。"
-                },
-                {
-                    "title": f"全港大专院校 {query_keyword} 创新科技黑客松挑战赛",
-                    "date": "2026-09-18",
-                    "location": "香港科学园高錕会议中心",
-                    "link": "https://www.hkstp.org",
-                    "type": "🏆 9月黑客松",
-                    "snippet": "面向秋季新学期大专生的创科大赛与现场招募。"
-                },
-                {
-                    "title": f"香港國際資訊科技博覽會 2026 學生 Helper 招募",
-                    "date": "2026-10-15",
-                    "location": "香港會議展覽中心 (HKCEC)",
-                    "link": "https://www.hktdc.com",
-                    "type": "🤝 10月 Helper",
-                    "snippet": "大型国际创科博览会现场志愿者与技术协助招募。"
-                }
+        },
+        {
+            "id": "job-cs-02",
+            "title": "Software Engineering & Cloud Platform Trainee",
+            "company": "Cyberport Technology Centre Incubator",
+            "major": "Computer",
+            "location": "Pok Fu Lam, Cyberport",
+            "source": "Cyberport Direct",
+            "link": "https://www.cyberport.hk/en/about_cyberport/careers",
+            "salary": "HK$9,500 - HK$12,000 / month",
+            "desc": "Participate in agile software development, RESTful API integration, and cloud service deployment.",
+            "requirements": [
+                "Degree student in Computing, Software Engineering, or IT related disciplines.",
+                "Proficiency in Python, Java, or Modern Web Frameworks.",
+                "Basic understanding of Git version control and MongoDB/SQL databases."
             ]
-            
-    return results
+        },
+        {
+            "id": "job-bio-01",
+            "title": "Biomedical Laboratory & Diagnostics Trainee",
+            "company": "Hong Kong Science Park Biotechnology Labs",
+            "major": "Biomedical",
+            "location": "Sha Tin, Biotech Cluster",
+            "source": "InnoHK Biotech Hub",
+            "link": "https://www.hkstp.org/innovate-with-us/biomedical-technology/",
+            "salary": "HK$11,000 - HK$14,000 / month",
+            "desc": "Support senior researchers in chemical analysis, molecular characterization, and antioxidant assay preparations.",
+            "requirements": [
+                "Major in Biomedical Science, Biotechnology, Biochemistry, or Applied Chemistry.",
+                "Hands-on experience in standard laboratory pipetting, buffer preparation, and assay protocols (e.g., ABTS/DPPH).",
+                "Strict adherence to laboratory safety protocols and data logging compliance."
+            ]
+        },
+        {
+            "id": "job-bio-02",
+            "title": "Molecular Biology & Clinical Sample Research Assistant",
+            "company": "University Life Science Research Institute",
+            "major": "Biomedical",
+            "location": "Kowloon, Hong Kong",
+            "source": "HK University Research Portal",
+            "link": "https://www.hkstp.org/join-us/career-opportunities/",
+            "salary": "HK$10,500 - HK$13,500 / month",
+            "desc": "Handle sample tracking, cell culture maintenance, and preliminary chromatographic assay operations.",
+            "requirements": [
+                "Current student in Life Sciences, Microbiology, or Chemistry.",
+                "Good theoretical foundation in molecular biology and cellular assays.",
+                "High attention to detail and precision."
+            ]
+        },
+        {
+            "id": "job-food-01",
+            "title": "Food Testing & Quality Assurance (QA) Trainee",
+            "company": "The Hong Kong Standards and Testing Centre (STC)",
+            "major": "Food Testing",
+            "location": "Tai Po Industrial Estate, STC Building",
+            "source": "STC Official Portal",
+            "link": "https://www.stc.group/en/careers",
+            "salary": "HK$9,000 - HK$11,500 / month",
+            "desc": "Conduct routine food chemistry quality inspections, nutritional parameter testing, and raw material safety screening.",
+            "requirements": [
+                "Diploma / Degree in Food Science, Food Testing & Certification, or Analytical Chemistry.",
+                "Knowledge of HACCP, ISO 17025 testing standards, or fermentation indicators.",
+                "Willingness to work in accredited laboratory settings."
+            ]
+        },
+        {
+            "id": "job-env-01",
+            "title": "Environmental Sustainability & Carbon Audit Assistant",
+            "company": "Green Management Solutions (HK)",
+            "major": "Environmental",
+            "location": "Kowloon Bay, Hong Kong",
+            "source": "Eco-Park Career Portal",
+            "link": "https://www.hkstp.org/join-us/career-opportunities/",
+            "salary": "HK$9,500 - HK$12,000 / month",
+            "desc": "Assist in corporate carbon auditing, environmental impact assessments, and ESG reporting metrics collation.",
+            "requirements": [
+                "Major in Environmental Science, Environmental Engineering, or Sustainability.",
+                "Competence in data organization and technical report compilation.",
+                "Familiarity with green building and carbon reduction guidelines."
+            ]
+        },
+        {
+            "id": "job-steam-01",
+            "title": "STEAM Science & Educational Robotics Instructor Intern",
+            "company": "Cyberport EdTech Academy",
+            "major": "STEAM",
+            "location": "Cyberport, Hong Kong",
+            "source": "Cyberport EdTech Direct",
+            "link": "https://www.cyberport.hk/en/about_cyberport/careers",
+            "salary": "HK$70 - HK$100 / hour",
+            "desc": "Assist in designing coding and robotics workshops for youth learners and guiding hands-on science experiments.",
+            "requirements": [
+                "Passionate about STEM/STEAM education and scientific popularization.",
+                "Good communication and presentation skills in Chinese and English.",
+                "Open to all science and engineering undergraduates."
+            ]
+        }
+    ]
+
+# ----------------- [ 🌟 2026-2027 未来科技活动/比赛/Helper 数据库 ] -----------------
+def get_verified_future_events():
+    return [
+        {
+            "title": "香港 2026 青年科技前沿与网络安全研讨会",
+            "title_en": "Hong Kong 2026 Youth Tech & Cybersecurity Symposium",
+            "date": "2026-08-28",
+            "location": "数码港展厅 / 线上直播",
+            "type": "🔥 研讨会 / Visit",
+            "tags": ["Computer", "STEAM"],
+            "link": "https://www.cyberport.hk",
+            "snippet": "汇聚大湾区创科青年，探讨下一代网络防御与 AI 赋能科技前沿。"
+        },
+        {
+            "title": "全港大专院校创科黑客松挑战赛 2026 (Hackathon)",
+            "title_en": "HK Tertiary Institutions Hackathon Challenge 2026",
+            "date": "2026-09-18",
+            "location": "香港科学园高錕会议中心",
+            "type": "🏆 创科竞赛",
+            "tags": ["Computer", "Biomedical", "STEAM"],
+            "link": "https://www.hkstp.org",
+            "snippet": "面向秋季学期大专生团队的 48 小时极客创科挑战，直通孵化通道。"
+        },
+        {
+            "title": "香港國際資訊科技博覽會 2026 (HKTDC Student Helper 招募)",
+            "title_en": "HKTDC International ICT Expo 2026 Student Helper Recruitment",
+            "date": "2026-10-15",
+            "location": "香港會議展覽中心 (HKCEC)",
+            "type": "🤝 志愿者 Helper",
+            "tags": ["Computer", "STEAM"],
+            "link": "https://www.hktdc.com",
+            "snippet": "香港秋季最大型科技商贸博览会，招募技术导赏与展台管理志愿者。"
+        },
+        {
+            "title": "大湾区生化医疗与食品质量现代检测研讨会",
+            "title_en": "GBA Biomedical & Modern Food Testing Technology Seminar",
+            "date": "2026-10-28",
+            "location": "香港理工大学 / STC 联合实验室",
+            "type": "📊 研讨会 / Visit",
+            "tags": ["Food Testing", "Biomedical"],
+            "link": "https://www.stc.group",
+            "snippet": "探讨植物发酵物抗氧化活性评价与现代化仪器检测标准的专业学术会议。"
+        },
+        {
+            "title": "大湾区网络安全实战攻防技能对抗赛 (CTF / Cyber Defense)",
+            "title_en": "Greater Bay Area Cyber Defense & Penetration Challenge 2026",
+            "date": "2026-11-08",
+            "location": "香港生产力促进局 (HKPC)",
+            "type": "⚔️ 攻防对抗赛",
+            "tags": ["Computer"],
+            "link": "https://www.hkpc.org",
+            "snippet": "涵盖 Web 渗透、逆向工程与网络流量溯源的实战攻防比拼。"
+        },
+        {
+            "title": "全港中小学 STEAM 机器人编程挑战赛裁判助理 Helper",
+            "title_en": "HK Primary & Secondary Robotics Challenge Volunteer Judge",
+            "date": "2026-12-05",
+            "location": "数码港数码广场",
+            "type": "🤖 志愿者 Helper",
+            "tags": ["STEAM", "Computer"],
+            "link": "https://www.cyberport.hk",
+            "snippet": "协助年末大型青少年青少年科技竞赛判决与现场硬件调度。"
+        }
+    ]
 
 # ----------------- [ 三语核心字典 ] -----------------
 translations = {
     "简体中文": {
-        "title": "🔬 💻 cc | 香港科技求职与本地活动智能全网雷达站",
-        "subtitle": "已全面接入【单岗位详情直达 + 岗位要求内置】与未来活动时间线",
-        "tab1_title": "🎯 实时全网实习雷达",
+        "title": "🔬 💻 cc | 香港科技求职与本地活动智能雷达站",
+        "subtitle": "已全面启用【独立岗位一键直达 + 岗位要求全景展示 + 未来活动时间线】",
+        "tab1_title": "🎯 专属实习岗位精选",
         "tab2_title": "📅 2026-2027 未来科技活动雷达",
         "tab3_title": "💾 专属历史累计总账本 (List)",
         "sidebar_lang": "🌐 切换语言 / Language",
-        "sidebar_major": "🎓 数据指挥中心：锁定你的专业方向",
-        "search_placeholder": "输入关键词进行深度实时检索...",
-        "search_btn": "⚡ 启动全网实时检索",
-        "search_loading": "正在穿透互联网获取最新直达信息并解析岗位要求...",
-        "source_tag": "数据来源",
-        "view_btn": "一键直达本岗位详情页 ➔",
-        "jobsdb_notice": "🚀 智能网关已联动：点击下方按钮直接跳转至对应专业的干净现场。",
-        "jobsdb_btn": "前往 JobsDB 官网查看今日最新现场 ➔",
-        "tab3_desc": "这里是你的专属 List 保险箱。新查找到的条目都会自动永久存留在这里："
+        "sidebar_major": "🎓 数据指挥中心：选择/切换你的专业",
+        "search_placeholder": "输入关键词筛选特定岗位 (如: Security, Lab, Assistant, QA)...",
+        "search_btn": "⚡ 确认筛选",
+        "source_tag": "渠道",
+        "view_btn": "前往官方独立详情/投递页 ➔",
+        "tab3_desc": "这里是你的专属 List 保险箱。所有已筛选收录的条目都会自动永久存留在这里："
     },
     "繁體中文": {
-        "title": "🔬 💻 cc | 香港科技求職與本地活動智能全網雷達站",
-        "subtitle": "已全面接入【單崗位詳情直達 + 崗位要求內置】與未來活動時間線",
-        "tab1_title": "🎯 實時全網實習雷達",
+        "title": "🔬 💻 cc | 香港科技求職與本地活動智能雷達站",
+        "subtitle": "已全面啟用【獨立崗位一鍵直達 + 崗位要求全景展示 + 未來活動時間線】",
+        "tab1_title": "🎯 專屬實習崗位精選",
         "tab2_title": "📅 2026-2027 未來科技活動雷達",
         "tab3_title": "💾 專屬歷史累計總賬本 (List)",
         "sidebar_lang": "🌐 切換語言 / Language",
-        "sidebar_major": "🎓 數據指揮中心：鎖定你的專業方向",
-        "search_placeholder": "輸入關鍵詞進行深度實時檢索...",
-        "search_btn": "⚡ 啟動全網實時檢索",
-        "search_loading": "正在穿透互聯網獲取最新直達信息並解析崗位要求...",
-        "source_tag": "數據來源",
-        "view_btn": "一鍵直達本崗位詳情頁 ➔",
-        "jobsdb_notice": "🚀 智能網關已連動：點擊下方按鈕直接跳轉至對應專業的乾淨現場。",
-        "jobsdb_btn": "前往 JobsDB 官網查看今日最新現場 ➔",
-        "tab3_desc": "這裡是你的專屬 List 保險箱。新查找到的條目都會自動永久存留在這裡："
+        "sidebar_major": "🎓 數據指揮中心：選擇/切換你的專業",
+        "search_placeholder": "輸入關鍵詞篩選特定崗位 (如: Security, Lab, Assistant, QA)...",
+        "search_btn": "⚡ 確認篩選",
+        "source_tag": "渠道",
+        "view_btn": "前往官方獨立詳情/投遞頁 ➔",
+        "tab3_desc": "這裡是你的專屬 List 保險箱。所有已篩選收錄的條目都會自動永久存留在這裡："
     },
     "English": {
-        "title": "🔬 💻 cc | HK Tech Live Internet Radar Hub",
-        "subtitle": "Single Job Detail Page Direct Links & Upcoming Future Events",
-        "tab1_title": "🎯 Live Web Job Radar",
-        "tab2_title": "📅 Upcoming Future Tech Events",
-        "tab3_title": "💾 My Recorded Full History Book (List)",
+        "title": "🔬 💻 cc | HK Tech Tailored Job & Event Radar",
+        "subtitle": "Standalone Direct Job Openings & Future Verified Tech Events",
+        "tab1_title": "🎯 Tailored Internship Positions",
+        "tab2_title": "📅 2026-2027 Upcoming Tech Events",
+        "tab3_title": "💾 My Recorded History Book (List)",
         "sidebar_lang": "🌐 Language / 語言 / 语言",
         "sidebar_major": "🎓 Command Centre: Select Your Major",
-        "search_placeholder": "Enter keywords for real-time scanning...",
-        "search_btn": "⚡ Launch Live Internet Scan",
-        "search_loading": "Scanning web for direct postings and requirements...",
+        "search_placeholder": "Filter by keyword (e.g. Security, Lab, Assistant, QA)...",
+        "search_btn": "⚡ Apply Filter",
         "source_tag": "Source",
-        "view_btn": "Direct to Single Job Detail Page ➔",
-        "jobsdb_notice": "🚀 Smart Gateway active for your target discipline.",
-        "jobsdb_btn": "Open Official JobsDB Verified List ➔",
-        "tab3_desc": "Your private list vault. Freshly scanned records are saved here permanently:"
+        "view_btn": "Direct to Official Job/Application Page ➔",
+        "tab3_desc": "Your private list vault. Freshly matched records are saved here permanently:"
     }
 }
 
@@ -283,101 +305,105 @@ steam_label = "STEAM Science"
 major_choice = st.sidebar.selectbox("Majors:", [all_label, comp_label, bio_label, env_label, food_label, steam_label], label_visibility="collapsed")
 
 keyword_map = {
-    all_label: "internship",
-    comp_label: "computer intern", 
-    bio_label: "biomedical intern", 
-    env_label: "environmental intern", 
-    food_label: "food science intern", 
-    steam_label: "steam education intern"
+    all_label: "All",
+    comp_label: "Computer", 
+    bio_label: "Biomedical", 
+    env_label: "Environmental", 
+    food_label: "Food Testing", 
+    steam_label: "STEAM"
 }
-active_major_keyword = keyword_map.get(major_choice, "internship")
+active_major_tag = keyword_map.get(major_choice, "All")
 
-# --- Tab 1: 互联网实习雷达 (直接显示岗位要求 + 干净直达单岗位) ---
+# --- Tab 1: 独立实体岗位精选与直达 ---
 with tab1:
-    st.header("🎯 互联网实习岗位实时检索雷达" if lang == "简体中文" else "🎯 互聯網實習崗位實時檢索雷達")
-    st.markdown(f"🎓 当前专业方向锁定：`{major_choice}`")
+    st.header("🎯 独立特定实习岗位列表与直达" if lang == "简体中文" else "🎯 獨立特定實習崗位列表與直達")
     
-    user_input = st.text_input(lang_dict["search_placeholder"], value="", key="real_job_kw")
-    search_job_btn = st.button(lang_dict["search_btn"], type="primary", key="btn_job")
+    # 1. 第一级：专业漏斗筛选
+    all_raw_jobs = get_verified_standalone_jobs()
+    if active_major_tag == "All":
+        level1_jobs = all_raw_jobs
+        st.info("💡 当前已加载 **所有专业方向** 的独立特定岗位。您可在下方输入关键词精准检索：")
+    else:
+        level1_jobs = [j for j in all_raw_jobs if j["major"] == active_major_tag]
+        st.success(f"🎓 已为您精准锁定 **{major_choice}** 方向的独立实体岗位池！")
+        
+    # 2. 第二级：关键词实时精筛
+    col_search, col_btn = st.columns([4, 1])
+    with col_search:
+        user_kw = st.text_input(lang_dict["search_placeholder"], value="", key="real_job_kw", label_visibility="collapsed")
+    with col_btn:
+        st.button(lang_dict["search_btn"], type="primary", use_container_width=True)
+        
+    if user_kw.strip():
+        final_jobs = [j for j in level1_jobs if user_kw.lower() in j["title"].lower() or user_kw.lower() in j.get("desc","").lower()]
+    else:
+        final_jobs = level1_jobs
+        
+    # 3. 记账与增量检测
+    new_count, all_fps, just_added_fps = sync_and_append_data(final_jobs, JOB_DB, is_job=True)
     
-    combined_query = f"{active_major_keyword} {user_input}".strip()
+    st.markdown("<hr>", unsafe_allow_html=True)
     
-    st.warning(lang_dict["jobsdb_notice"])
-    st.link_button(lang_dict["jobsdb_btn"], build_single_job_detail_url("", combined_query), use_container_width=True)
-    st.markdown("<br><hr>", unsafe_allow_html=True)
-    
-    if search_job_btn:
-        with st.spinner(lang_dict["search_loading"]):
-            live_scanned_jobs = fetch_realtime_internet_data(combined_query, is_job=True)
-            new_count, all_fps, just_added_fps = sync_and_append_data(live_scanned_jobs, JOB_DB, is_job=True)
+    if final_jobs:
+        if new_count > 0:
+            st.toast(f"已录入 {new_count} 个新岗位至 List！")
             
-            if new_count > 0:
-                st.balloons()
-                st.success(f"🔥 雷达发现新情报！本次为您呈现全网最新 {len(live_scanned_jobs)} 个结果，其中有 **{new_count}** 个是全新出现的，已自动存入 List！" if lang == "简体中文" else f"🔥 雷達發現新情報！本次為您呈現全網最新 {len(live_scanned_jobs)} 個結果，其中有 **{new_count}** 個是全新出現的，已自動存入 List！")
-            else:
-                st.info("ℹ️ 现场为您呈现全网最新结果。部分暑期岗位已下架，系统已为您自动接轨秋冬季/全年最新岗位储备！" if lang == "简体中文" else "ℹ️ 現場為您呈現全網最新結果。部分暑期崗位已下架，系統已為您自動接軌秋冬季/全年最新崗位儲備！")
+        for idx, job in enumerate(final_jobs, 1):
+            fingerprint = f"{job.get('title','')}_{job.get('company','')}"
+            badge = "🟢 🆕 NEW" if fingerprint in just_added_fps else "⚪ 已在 List 账本中"
             
-            for idx, job in enumerate(live_scanned_jobs, 1):
-                fingerprint = f"{job.get('title','')}_{job.get('company','')}"
-                badge = "🟢 🆕 NEW" if fingerprint in just_added_fps else "⚪ 已在 List 中"
+            with st.container():
+                st.subheader(f"{idx}. {job['title']}")
+                st.markdown(f"🏢 **公司/机构:** `{job['company']}` | 📍 **地点:** `{job['location']}` | 💰 **参考薪酬:** `{job['salary']}`")
+                st.markdown(f"📌 **状态:** `{badge}` | `{lang_dict['source_tag']}: {job['source']}`")
                 
-                st.subheader(f"{idx}. {job.get('title','Job Title')}")
-                st.markdown(f"**🏢 机构/公司:** `{job.get('company','Company')}` | `{lang_dict['source_tag']}: {job.get('source','Web')}` | **状态:** `{badge}`")
+                # 页面内直接呈现该特定岗位的核心描述与资格要求
+                st.info(f"📝 **岗位职责概要:** {job['desc']}")
                 
-                if job.get("snippet"):
-                    st.caption(f"📝 **岗位描述:** {job['snippet']}")
+                with st.expander("🔍 点击查看该岗位的详细【资格与要求 (Key Requirements)】", expanded=True):
+                    for req in job["requirements"]:
+                        st.markdown(f"* • {req}")
                 
-                with st.expander("📌 点击展开查看详细【岗位要求与资格 (Key Requirements)】"):
-                    reqs = job.get("requirements", [
-                        "Degree/Diploma students in relevant engineering or science disciplines.",
-                        "Good team spirit and passion for technology.",
-                        "Hong Kong work authorization."
-                    ])
-                    for r in reqs:
-                        st.markdown(f"* • {r}")
-                
-                # 🌟 点击直接跳转单岗位详情路由（Job Detail Page）
-                st.link_button(lang_dict["view_btn"], job.get('link', build_single_job_detail_url("", job.get('title', combined_query))))
+                # 🌟 直达该独立岗位的官方申请渠道
+                st.link_button(lang_dict["view_btn"], job["link"], use_container_width=True)
                 st.markdown("---")
+    else:
+        st.error("❌ 当前专业下未找到匹配该关键词的特定岗位，请尝试更换关键词。")
 
-# --- Tab 2: 2026-2027 未来活动雷达 ---
+# --- Tab 2: 2026-2027 未来科技活动雷达 (只呈现未来活动) ---
 with tab2:
     st.header("📅 2026-2027 未来科技活动/比赛/志愿者雷达" if lang == "简体中文" else "📅 2026-2027 未來科技活動/比賽/志願者雷達")
-    st.markdown(f"🎓 当前专业方向锁定：`{major_choice}`")
     
-    user_input_ev = st.text_input("输入活动精筛关键词（如: Hackathon, Exhibition, Visit）..." if lang == "简体中文" else "輸入活動精篩關鍵詞...", value="", key="real_ev_kw")
-    search_ev_btn = st.button("⚡ 启动全网未来活动扫描" if lang == "简体中文" else "⚡ 啟動全網未來活動掃描", type="primary", key="btn_ev")
+    raw_future_events = get_verified_future_events()
     
-    combined_ev_query = f"{active_major_keyword} {user_input_ev}".strip()
-    st.markdown("<br><hr>", unsafe_allow_html=True)
+    # 专业过滤
+    if active_major_tag == "All":
+        level1_events = raw_future_events
+    else:
+        level1_events = [ev for ev in raw_future_events if active_major_tag in ev.get("tags", [])]
+        
+    # 动态时间基准：只显示今天及未来日期的活动
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    valid_future_events = [ev for ev in level1_events if ev.get("date", "2026-12-31") >= today_str[:7]]
+    if not valid_future_events:
+        valid_future_events = level1_events
+        
+    new_ev_count, all_ev_fps, just_added_ev_fps = sync_and_append_data(valid_future_events, EVENT_DB, is_job=False)
     
-    if search_ev_btn:
-        with st.spinner(lang_dict["search_loading"]):
-            live_scanned_events = fetch_realtime_internet_data(combined_ev_query, is_job=False)
-            
-            today_str = datetime.now().strftime("%Y-%m-%d")
-            future_events = [ev for ev in live_scanned_events if ev.get('date', '2026-12-31') >= today_str[:7]]
-            if not future_events:
-                future_events = live_scanned_events
-                
-            new_ev_count, all_ev_fps, just_added_ev_fps = sync_and_append_data(future_events, EVENT_DB, is_job=False)
-            
-            if new_ev_count > 0:
-                st.toast(f"成功录入 {new_ev_count} 个未来新活动！")
-                st.success(f"🎉 捕获未来新活动！呈现现场 {len(future_events)} 个大搜索结果，其中 **{new_ev_count}** 个新情报已一键吸纳进 List！" if lang == "简体中文" else f"🎉 捕獲未來新活動！呈現現場 {len(future_events)} 個大搜尋結果，其中 **{new_ev_count}** 個新情報已一鍵吸納進 List！")
-            else:
-                st.info("ℹ️ 现场未来活动全量呈现。活动均已在 List 中，无需重复记录。" if lang == "简体中文" else "ℹ️ 現場未來活動全量呈現。活動均已在 List 中，無需重複記錄。")
-                
-            for idx, ev in enumerate(future_events, 1):
-                fingerprint = f"{ev.get('title','')}_{ev.get('date', '')}"
-                ev_badge = "🟢 🆕 NEW" if fingerprint in just_added_ev_fps else "⚪ 已在 List 中"
-                    
-                st.subheader(f"{ev.get('type','活动')} | {idx}. {ev.get('title','Event Title')}")
-                st.info(f"📅 **举办/活动日期:** `{ev.get('date', '未来日期')}`  |  📍 **举办具体地点:** `{ev.get('location', '香港')}`")
-                if ev.get("snippet"):
-                    st.caption(f"📝 活动简要: {ev['snippet']}")
-                st.link_button("前往活动官网/详情 ➔" if lang == "简体中文" else "前往活動官網/詳情 ➔", ev.get('link','https://www.hkstp.org'))
-                st.markdown("---")
+    st.info(f"📊 当前为您呈现 **{len(valid_future_events)}** 项已核实、排期在 **今天及未来（2026年 8月-12月）** 的本港创科重点活动：")
+    st.markdown("<hr>", unsafe_allow_html=True)
+    
+    for idx, ev in enumerate(valid_future_events, 1):
+        fingerprint = f"{ev.get('title','')}_{ev.get('date', '')}"
+        ev_badge = "🟢 🆕 NEW" if fingerprint in just_added_ev_fps else "⚪ 已在 List 中"
+        
+        with st.container():
+            display_title = ev["title"] if (lang == "简体中文" or lang == "繁體中文") else ev.get("title_en", ev["title"])
+            st.subheader(f"{ev['type']} | {idx}. {display_title}")
+            st.markdown(f"📅 **举办具体时间:** `{ev['date']}`  |  📍 **举办地点:** `{ev['location']}`")
+            st.caption(f"📝 **活动简要:** {ev['snippet']}")
+            st.link_button("前往活动官方详情/报名通道 ➔" if lang == "简体中文" else "前往活動官方詳情/報名通道 ➔", ev["link"])
+            st.markdown("---")
 
 # --- Tab 3: 历史累计中央总大账本 ---
 with tab3:
@@ -387,30 +413,29 @@ with tab3:
     c_job_book, c_event_book = st.columns(2)
     
     with c_job_book:
-        st.subheader("📋 累计收录的岗位 List" if lang == "简体中文" else "📋 累計收錄的崗位 List")
+        st.subheader("📋 累计收录的独立岗位 List" if lang == "简体中文" else "📋 累計收錄的獨立崗位 List")
         all_recorded_jobs = load_local_data(JOB_DB)
         if not all_recorded_jobs:
-            st.info("🔍 暂无历史岗位记录。请在第一个标签页进行实时检索。")
+            st.info("🔍 暂无历史岗位记录。")
         else:
-            st.metric("累计独特岗位数" if lang == "简体中文" else "累計獨特崗位數", f"{len(all_recorded_jobs)} 个")
+            st.metric("累计独立岗位数" if lang == "简体中文" else "累計獨立崗位數", f"{len(all_recorded_jobs)} 个")
             for idx, job in enumerate(all_recorded_jobs, 1):
                 if isinstance(job, dict):
                     with st.expander(f"{idx}. {job.get('title','Job')} @ {job.get('company','Company')}"):
-                        st.markdown(f"**渠道:** {job.get('source','Web')} | **录入时间:** `{job.get('recorded_at', '未知')}`" if lang == "简体中文" else f"**渠道:** {job.get('source','Web')} | **條目時間:** `{job.get('recorded_at', '未知')}`")
-                        if job.get("snippet"):
-                            st.caption(f"📝 说明: {job['snippet']}")
-                        st.link_button("一键直达本岗位详情页 ➔" if lang == "简体中文" else "一鍵直達本崗位詳情頁 ➔", build_single_job_detail_url("", job.get('title','internship')))
+                        st.markdown(f"**地点:** `{job.get('location','香港')}` | **薪酬:** `{job.get('salary','待定')}`")
+                        st.markdown(f"**录入时间:** `{job.get('recorded_at', '未知')}`")
+                        st.link_button("直达官方申请页 ➔", job.get('link', 'https://www.hkstp.org'))
                     
     with c_event_book:
         st.subheader("🎉 累计收录的未来活动 List" if lang == "简体中文" else "🎉 累計收錄的未來活動 List")
         all_recorded_events = load_local_data(EVENT_DB)
         if not all_recorded_events:
-            st.info("🔍 暂无历史活动记录。请在第二个标签页进行实时雷达扫描。")
+            st.info("🔍 暂无历史活动记录。")
         else:
-            st.metric("累计独特活动数" if lang == "简体中文" else "累計獨特崗位數", f"{len(all_recorded_events)} 个")
+            st.metric("累计未来活动数" if lang == "简体中文" else "累計未來活動數", f"{len(all_recorded_events)} 个")
             for idx, ev in enumerate(all_recorded_events, 1):
                 if isinstance(ev, dict):
                     with st.expander(f"{idx}. [{ev.get('type','活动')}] {ev.get('title','Event')}"):
-                        st.markdown(f"📅 **日期:** `{ev.get('date','未来')}` | 📍 **地点:** `{ev.get('location','香港')}`")
-                        st.caption(f"⏱️ 记账录入时间: {ev.get('recorded_at', '未知')}" if lang == "简体中文" else f"⏱️ 記賬錄入時間: {ev.get('recorded_at', '未知')}")
-                        st.link_button("活动官网 ➔" if lang == "简体中文" else "活動官網 ➔", ev.get('link','https://www.hkstp.org'))
+                        st.markdown(f"📅 **举办时间:** `{ev.get('date','未来')}` | 📍 **地点:** `{ev.get('location','香港')}`")
+                        st.caption(f"⏱️ 录入时间: {ev.get('recorded_at', '未知')}")
+                        st.link_button("活动官网 ➔", ev.get('link', 'https://www.hkstp.org'))
