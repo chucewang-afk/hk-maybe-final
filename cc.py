@@ -297,46 +297,49 @@ keyword_map = {
 }
 active_major_keyword = keyword_map.get(major_choice, "internship")
 
-# --- Tab 1: 互联网实习雷达 ---
+# --- Tab 1: 单岗位详情雷达 ---
 with tab1:
-    st.header("🎯 互联网实习岗位实时检索雷达" if lang == "简体中文" else "🎯 互聯網實習崗位實時檢索雷達")
+    st.header("🎯 单岗位详情雷达" if lang == "简体中文" else "🎯 單崗位詳情雷達")
     st.markdown(f"🎓 当前专业方向锁定：`{major_choice}`")
-    
+
     user_input = st.text_input(lang_dict["search_placeholder"], value="", key="real_job_kw")
     search_job_btn = st.button(lang_dict["search_btn"], type="primary", key="btn_job")
-    
+
     combined_query = f"{active_major_keyword} {user_input}".strip()
     st.markdown("<br>", unsafe_allow_html=True)
-    
+
     if search_job_btn:
         with st.spinner(lang_dict["search_loading"]):
             live_scanned_jobs = fetch_realtime_internet_data(combined_query, is_job=True)
-            new_count, all_fps, just_added_fps = sync_and_append_data(live_scanned_jobs, JOB_DB, is_job=True)
-            
-            if new_count > 0:
-                st.balloons()
-                st.success(f"🔥 雷达发现新情报！本次为您呈现全网最新 {len(live_scanned_jobs)} 个结果，其中有 **{new_count}** 个是全新出现的，已自动存入 List！" if lang == "简体中文" else f"🔥 雷達發現新情報！本次為您呈現全網最新 {len(live_scanned_jobs)} 個結果，其中有 **{new_count}** 個是全新出現的，已自動存入 List！")
-            else:
-                st.info("ℹ️ 现场为您呈现全网最新结果。部分暑期岗位已下架，系统已为您自动接轨秋冬季/全年最新岗位储备！" if lang == "简体中文" else "ℹ️ 現場為您呈現全網最新結果。部分暑期崗位已下架，系統已為您自動接軌秋冬季/全年最新崗位儲備！")
-            
-            for idx, job in enumerate(live_scanned_jobs, 1):
-                fingerprint = f"{job.get('title','')}_{job.get('company','')}"
-                badge = "🟢 🆕 NEW" if fingerprint in just_added_fps else "⚪ 已在 List 中"
-                
+
+            if live_scanned_jobs:
+                # 只取第一个结果作为唯一岗位详情
+                job = live_scanned_jobs[0]
+                new_count, all_fps, just_added_fps = sync_and_append_data([job], JOB_DB, is_job=True)
+
+                if new_count > 0:
+                    st.balloons()
+                    st.success(f"🔥 成功捕获到一个全新岗位！已自动存入 List！" if lang == "简体中文" else f"🔥 成功捕獲到一個全新崗位！已自動存入 List！")
+                else:
+                    st.info("ℹ️ 岗位已在历史记录中，本次为您直接呈现详情。" if lang == "简体中文" else "ℹ️ 崗位已在歷史記錄中，本次為您直接呈現詳情。")
+
+                # 单岗位详情卡片展示
                 with st.container(border=True):
-                    st.subheader(f"{idx}. {job.get('title','Job Title')}")
-                    st.markdown(f"**🏢 机构/公司:** `{job.get('company','Company')}` | `{lang_dict['source_tag']}: {job.get('source','Web')}` | **状态:** `{badge}`")
-                    
+                    st.subheader(job.get("title", "Job Title"))
+                    st.markdown(f"**🏢 公司:** `{job.get('company','Company')}` | `{lang_dict['source_tag']}: {job.get('source','Web')}`")
+
                     st.markdown("#### 📝 岗位职责与工作内容 (Job Description)")
                     st.write(job.get("snippet", "暂无简述"))
-                    
+
                     st.markdown("#### 🎯 岗位任职资格与要求 (Key Requirements)")
-                    reqs = job.get("requirements", [])
-                    for r in reqs:
+                    for r in job.get("requirements", []):
                         st.markdown(f"* {r}")
-                        
+
                     st.markdown("---")
-                    st.link_button("🚀 一键直达此岗位投递/来源页面 ➔", job.get('link', build_valid_jobsdb_url(combined_query)), type="primary")
+                    st.link_button("🚀 一键直达投递页面 ➔", job.get("link", build_valid_jobsdb_url(combined_query)), type="primary")
+            else:
+                st.warning("❌ 未找到相关岗位，请尝试更换关键词。")
+
 
 # --- Tab 2: 2026-2027 未来活动雷达 ---
 with tab2:
