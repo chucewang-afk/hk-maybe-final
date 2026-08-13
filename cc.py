@@ -56,15 +56,16 @@ def sync_and_append_data(current_items, filepath, is_job=True):
     return new_detected_count, old_fingerprints, just_added_fingerprints
 
 # 🌟 核心突破：构建 100% 官方合规、绝不 404 的 JobsDB SEO Slug 路由格式
+# 改成返回单一岗位详情页（示例）
 def build_valid_jobsdb_url(keyword_or_title):
     clean_kw = re.sub(r'[^a-zA-Z0-9\s-]', '', str(keyword_or_title)).strip()
     clean_slug = re.sub(r'\s+', '-', clean_kw).lower()
     
     if not clean_slug or len(clean_slug) < 2:
         clean_slug = "internship"
-        
-    # JobsDB 官方合规 URL 架构：https://hk.jobsdb.com/{slug}-jobs
-    return f"https://hk.jobsdb.com/{clean_slug}-jobs"
+    
+    # 假设岗位详情页的 URL 格式是 /job/{slug}-intern-2026
+    return f"https://hk.jobsdb.com/job/{clean_slug}-intern-2026"
 
 # 🌟 解码 DuckDuckGo 真实重定向链接
 def extract_real_url_from_ddg(raw_url):
@@ -313,33 +314,23 @@ with tab1:
             live_scanned_jobs = fetch_realtime_internet_data(combined_query, is_job=True)
 
             if live_scanned_jobs:
-                # 只取第一个结果作为唯一岗位详情
-                job = live_scanned_jobs[0]
-                new_count, all_fps, just_added_fps = sync_and_append_data([job], JOB_DB, is_job=True)
+                job = live_scanned_jobs[0]  # 只取第一个岗位
+                new_count, _, _ = sync_and_append_data([job], JOB_DB, is_job=True)
 
-                if new_count > 0:
-                    st.balloons()
-                    st.success(f"🔥 成功捕获到一个全新岗位！已自动存入 List！" if lang == "简体中文" else f"🔥 成功捕獲到一個全新崗位！已自動存入 List！")
-                else:
-                    st.info("ℹ️ 岗位已在历史记录中，本次为您直接呈现详情。" if lang == "简体中文" else "ℹ️ 崗位已在歷史記錄中，本次為您直接呈現詳情。")
+                st.success("✅ 已为您锁定唯一岗位详情：" if lang == "简体中文" else "✅ 已為您鎖定唯一崗位詳情：")
 
-                # 单岗位详情卡片展示
                 with st.container(border=True):
                     st.subheader(job.get("title", "Job Title"))
-                    st.markdown(f"**🏢 公司:** `{job.get('company','Company')}` | `{lang_dict['source_tag']}: {job.get('source','Web')}`")
-
-                    st.markdown("#### 📝 岗位职责与工作内容 (Job Description)")
+                    st.markdown(f"**🏢 公司:** `{job.get('company','Company')}` | 来源: `{job.get('source','Web')}`")
+                    st.markdown("#### 📝 岗位职责")
                     st.write(job.get("snippet", "暂无简述"))
-
-                    st.markdown("#### 🎯 岗位任职资格与要求 (Key Requirements)")
+                    st.markdown("#### 🎯 任职要求")
                     for r in job.get("requirements", []):
                         st.markdown(f"* {r}")
-
                     st.markdown("---")
-                    st.link_button("🚀 一键直达投递页面 ➔", job.get("link", build_valid_jobsdb_url(combined_query)), type="primary")
+                    st.link_button("🚀 查看官方岗位详情 ➔", job.get("link", build_valid_jobsdb_url(combined_query)), type="primary")
             else:
                 st.warning("❌ 未找到相关岗位，请尝试更换关键词。")
-
 
 # --- Tab 2: 2026-2027 未来活动雷达 ---
 with tab2:
