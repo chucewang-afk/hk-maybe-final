@@ -426,7 +426,6 @@ def get_strictly_matched_events(major_key, user_kw=""):
         ]
     }
     
-    # 彻底杜绝跨专业污染黑名单（非计算机专业绝对过滤网络安全/CTF）
     selected_events = []
     if "food" in key:
         selected_events = all_events_data["food"]
@@ -442,7 +441,6 @@ def get_strictly_matched_events(major_key, user_kw=""):
         for cat in all_events_data:
             selected_events.extend(all_events_data[cat])
 
-    # 如果非计算机专业，强制过滤掉任何含 ctf 或 cybersecurity 词汇的条目
     if "computer" not in key and "all" not in key:
         selected_events = [ev for ev in selected_events if "cybersecurity" not in ev['title'].lower() and "ctf" not in ev['title'].lower()]
 
@@ -457,7 +455,7 @@ def get_strictly_matched_events(major_key, user_kw=""):
                 results.append(ev)
         return results
 
-# ----------------- [ 三语界面字典 ] -----------------
+# ----------------- [ 🌐 完整多语言词典 ] -----------------
 translations = {
     "简体中文": {
         "title": "🔬 💻 cc | 香港科技求职与本地活动智能雷达站",
@@ -468,10 +466,28 @@ translations = {
         "sidebar_lang": "🌐 切换语言 / Language",
         "sidebar_major": "🎓 数据指挥中心：锁定你的专业方向",
         "search_placeholder": "输入搜索词精筛（如: polyu, lab, assistant）...",
+        "search_placeholder_ev": "输入活动精筛关键词（如: polyu, hkmu, workshop）...",
         "search_btn": "⚡ 启动全网精选检索",
+        "search_btn_ev": "⚡ 启动全网未来活动扫描",
         "search_loading": "正在执行无污染隔离筛选逻辑...",
+        "search_loading_ev": "正在检索与当前专业严格对应的 2026-2027 香港本地创科活动与比赛...",
         "source_tag": "来源网关",
-        "tab3_desc": "这里是你的专属 List 保险箱。新查找到的条目都会自动永久存留在这里："
+        "tab3_desc": "这里是你的专属 List 保险箱。新查找到的条目都会自动永久存留在这里：",
+        "job_header": "🎯 互联网实习岗位实时检索雷达",
+        "ev_header": "📅 2026-2027 未来科技活动/比赛/志愿者雷达",
+        "current_major_prefix": "🎓 当前专业方向锁定：",
+        "no_job_match": "⚠️ 现场未检索到与筛选条件完全相符的工作，已按您的要求不展示不相关的替代数据。请尝试调整或更换搜寻关键词。",
+        "no_ev_match": "⚠️ 未能找到与当前专业及关键词相符的活动，已按要求不展示不相关的活动数据。",
+        "job_desc_head": "📝 岗位职责与工作内容 (Job Description)",
+        "job_req_head": "🎯 核心任职要求 (Key Requirements)",
+        "link_btn_job": "🌐 直达 JobsDB 查看 [{company}] 右侧展开详情 ➔",
+        "link_btn_ev": "前往活动官网/详情 ➔",
+        "hist_job_title": "📋 累计收录的岗位 List",
+        "hist_ev_title": "🎉 累计收录的未来活动 List",
+        "hist_job_empty": "🔍 暂无历史岗位记录。请在第一个标签页进行实时检索。",
+        "hist_ev_empty": "🔍 暂无历史活动记录。请在第二个标签页进行实时雷达扫描。",
+        "hist_job_metric": "累计独特岗位数",
+        "hist_ev_metric": "累计独特活动数"
     },
     "繁體中文": {
         "title": "🔬 💻 cc | 香港科技求職與本地活動智能雷達站",
@@ -482,10 +498,28 @@ translations = {
         "sidebar_lang": "🌐 切換語言 / Language",
         "sidebar_major": "🎓 數據指揮中心：鎖定你的專業方向",
         "search_placeholder": "輸入搜尋詞精篩（如: polyu, lab, assistant）...",
+        "search_placeholder_ev": "輸入活動精篩關鍵詞（如: polyu, hkmu, workshop）...",
         "search_btn": "⚡ 啟動全網精選檢索",
+        "search_btn_ev": "⚡ 啟動全網未來活動掃描",
         "search_loading": "正在執行無污染隔離篩選邏輯...",
+        "search_loading_ev": "正在檢索與當前專業嚴格對應的 2026-2027 香港本地創科活動與比賽...",
         "source_tag": "來源網關",
-        "tab3_desc": "這裡是你的專屬 List 保險箱。新查找到的條目都會自動永久存留在這裡："
+        "tab3_desc": "這裡是你的專屬 List 保險箱。新查找到的條目都會自動永久存留在這裡：",
+        "job_header": "🎯 互聯網實習崗位實時檢索雷達",
+        "ev_header": "📅 2026-2027 未來科技活動/比賽/志願者雷達",
+        "current_major_prefix": "🎓 當前專業方向鎖定：",
+        "no_job_match": "⚠️ 現場未檢索到與篩選條件完全相符的工作，已按您的要求不展示不相關的替代數據。請嘗試調整或更換搜尋關鍵詞。",
+        "no_ev_match": "⚠️ 未能找到與當前專業及關鍵詞相符的活動，已按要求不展示不相關的活動數據。",
+        "job_desc_head": "📝 崗位職責與工作內容 (Job Description)",
+        "job_req_head": "🎯 核心任職要求 (Key Requirements)",
+        "link_btn_job": "🌐 直達 JobsDB 查看 [{company}] 右側展開詳情 ➔",
+        "link_btn_ev": "前往活動官網/詳情 ➔",
+        "hist_job_title": "📋 累計收錄的崗位 List",
+        "hist_ev_title": "🎉 累計收錄的未來活動 List",
+        "hist_job_empty": "🔍 暫無歷史崗位記錄。請在第一個標籤頁進行實時檢索。",
+        "hist_ev_empty": "🔍 暫無歷史活動記錄。請在第二個標籤頁進行實時雷達掃描。",
+        "hist_job_metric": "累計獨特崗位數",
+        "hist_ev_metric": "累計獨特活動數"
     },
     "English": {
         "title": "🔬 💻 cc | HK Tech Live Radar Hub",
@@ -496,15 +530,33 @@ translations = {
         "sidebar_lang": "🌐 Language / 語言 / 语言",
         "sidebar_major": "🎓 Command Centre: Select Your Major",
         "search_placeholder": "Enter search terms (e.g. polyu, lab, assistant)...",
+        "search_placeholder_ev": "Enter event keywords (e.g. polyu, hkmu, workshop)...",
         "search_btn": "⚡ Launch Scan",
+        "search_btn_ev": "⚡ Launch Event Scan",
         "search_loading": "Executing strict filter logic...",
+        "search_loading_ev": "Searching strictly major-matched 2026-2027 HK tech events...",
         "source_tag": "Source Gateway",
-        "tab3_desc": "Your private list vault. Freshly scanned records are saved here permanently:"
+        "tab3_desc": "Your private list vault. Freshly scanned records are saved here permanently:",
+        "job_header": "🎯 Live Web Job Radar",
+        "ev_header": "📅 2026-2027 Future Tech Events / Contests / Helper Radar",
+        "current_major_prefix": "🎓 Locked Major Direction: ",
+        "no_job_match": "⚠️ No jobs matched your exact criteria. Unrelated data has been hidden as requested. Please try adjusting your search terms.",
+        "no_ev_match": "⚠️ No events matched your major and keyword criteria.",
+        "job_desc_head": "📝 Job Description",
+        "job_req_head": "🎯 Key Requirements",
+        "link_btn_job": "🌐 View [{company}] Right-Side Job Detail on JobsDB ➔",
+        "link_btn_ev": "Go to Official Event Page ➔",
+        "hist_job_title": "📋 Recorded Jobs List",
+        "hist_ev_title": "🎉 Recorded Future Events List",
+        "hist_job_empty": "🔍 No job records found. Search in Tab 1 to record new items.",
+        "hist_ev_empty": "🔍 No event records found. Search in Tab 2 to record new items.",
+        "hist_job_metric": "Total Unique Jobs",
+        "hist_ev_metric": "Total Unique Events"
     }
 }
 
 st.sidebar.markdown(f"### {translations['English']['sidebar_lang']}")
-lang = st.sidebar.selectbox("Choose Language:", ["简体中文", "繁體中文", "English"], label_visibility="collapsed")
+lang = st.sidebar.selectbox("Choose Language / 選擇語言:", ["简体中文", "繁體中文", "English"], label_visibility="collapsed")
 lang_dict = translations[lang]
 
 st.title(lang_dict["title"])
@@ -534,8 +586,8 @@ active_major_keyword = keyword_map.get(major_choice, "food")
 
 # --- Tab 1: 互联网实习雷达 ---
 with tab1:
-    st.header("🎯 互联网实习岗位实时检索雷达" if lang == "简体中文" else "🎯 互聯網實習崗位實時檢索雷達")
-    st.markdown(f"🎓 当前专业方向锁定：`{major_choice}`")
+    st.header(lang_dict["job_header"])
+    st.markdown(f"{lang_dict['current_major_prefix']}`{major_choice}`")
     
     user_input = st.text_input(lang_dict["search_placeholder"], value="", key="real_job_kw")
     search_job_btn = st.button(lang_dict["search_btn"], type="primary", key="btn_job")
@@ -547,15 +599,15 @@ with tab1:
             live_scanned_jobs = get_comprehensive_jobs(active_major_keyword, user_input)
             
             if not live_scanned_jobs:
-                st.warning("⚠️ 现场未检索到与筛选条件完全相符的工作，已按您的要求不展示不相关的替代数据。请尝试调整或更换搜寻关键词。" if lang == "简体中文" else "⚠️ 現場未檢索到與篩選條件完全相符的工作，已按您的要求不展示不相關的替代數據。請嘗試調整或更換搜尋關鍵詞。")
+                st.warning(lang_dict["no_job_match"])
             else:
                 new_count, all_fps, just_added_fps = sync_and_append_data(live_scanned_jobs, JOB_DB, is_job=True)
                 
                 if new_count > 0:
                     st.balloons()
-                    st.success(f"🔥 为您精准匹配到 **{len(live_scanned_jobs)}** 个完全符合条件的岗位！其中 **{new_count}** 个已存入 List！" if lang == "简体中文" else f"🔥 為您精準匹配到 **{len(live_scanned_jobs)}** 個完全符合條件的崗位！其中 **{new_count}** 個已存入 List！")
+                    st.success(f"🔥 ({lang}) 精准匹配到 **{len(live_scanned_jobs)}** 个岗位！其中 **{new_count}** 个已存入 List！")
                 else:
-                    st.info(f"ℹ️ 找到 **{len(live_scanned_jobs)}** 个完全符合条件的岗位，均已在 List 中存留。" if lang == "简体中文" else f"ℹ️ 找到 **{len(live_scanned_jobs)}** 個完全符合條件的崗位，均已在 List 中存留。")
+                    st.info(f"ℹ️ ({lang}) 找到 **{len(live_scanned_jobs)}** 个符合条件的岗位，均已在 List 中存留。")
                 
                 for idx, job in enumerate(live_scanned_jobs, 1):
                     fingerprint = f"{job.get('title','')}_{job.get('company','')}"
@@ -563,43 +615,44 @@ with tab1:
                     
                     with st.container(border=True):
                         st.subheader(f"{idx}. {job.get('title','Job Title')}")
-                        st.markdown(f"🏢 **真实雇主/机构:** `{job.get('company','Company')}`  |  `{lang_dict['source_tag']}: {job.get('source','JobsDB Portal')}`  |  **状态:** `{badge}`")
+                        st.markdown(f"🏢 **雇主/机构:** `{job.get('company','Company')}`  |  `{lang_dict['source_tag']}: {job.get('source','JobsDB Portal')}`  |  **状态:** `{badge}`")
                         
-                        st.markdown("#### 📝 岗位职责与工作内容 (Job Description)")
-                        st.write(job.get("snippet", "暂无简述"))
+                        st.markdown(f"#### {lang_dict['job_desc_head']}")
+                        st.write(job.get("snippet", ""))
                         
-                        st.markdown("#### 🎯 核心任职要求 (Key Requirements)")
+                        st.markdown(f"#### {lang_dict['job_req_head']}")
                         reqs = job.get("requirements", [])
                         for r in reqs:
                             st.markdown(f"* {r}")
                             
                         st.markdown("---")
-                        st.link_button(f"🌐 直达 JobsDB 查看 [{job.get('company')}] 右侧展开详情 ➔", job.get('link'), type="primary")
+                        btn_label = lang_dict["link_btn_job"].format(company=job.get('company','Company'))
+                        st.link_button(btn_label, job.get('link'), type="primary")
 
 # --- Tab 2: 2026-2027 未来科技活动雷达 ---
 with tab2:
-    st.header("📅 2026-2027 未来科技活动/比赛/志愿者雷达" if lang == "简体中文" else "📅 2026-2027 未來科技活動/比賽/志願者雷達")
-    st.markdown(f"🎓 当前专业方向锁定：`{major_choice}`")
+    st.header(lang_dict["ev_header"])
+    st.markdown(f"{lang_dict['current_major_prefix']}`{major_choice}`")
     
-    user_input_ev = st.text_input("输入活动精筛关键词（如: polyu, hkmu, workshop）..." if lang == "简体中文" else "輸入活動精篩關鍵詞...", value="", key="real_ev_kw")
-    search_ev_btn = st.button("⚡ 启动全网未来活动扫描" if lang == "简体中文" else "⚡ 啟動全網未來活動掃描", type="primary", key="btn_ev")
+    user_input_ev = st.text_input(lang_dict["search_placeholder_ev"], value="", key="real_ev_kw")
+    search_ev_btn = st.button(lang_dict["search_btn_ev"], type="primary", key="btn_ev")
     
     st.markdown("<br><hr>", unsafe_allow_html=True)
     
     if search_ev_btn:
-        with st.spinner("正在检索与当前专业严格对应的 2026-2027 香港本地创科活动与比赛..."):
+        with st.spinner(lang_dict["search_loading_ev"]):
             live_scanned_events = get_strictly_matched_events(active_major_keyword, user_input_ev)
             
             if not live_scanned_events:
-                st.warning("⚠️ 未能找到与当前专业及关键词相符的活动，已按要求不展示不相关的活动数据。" if lang == "简体中文" else "⚠️ 未能找到與當前專業及關鍵詞相符的活動，已按要求不展示不相關的活動數據。")
+                st.warning(lang_dict["no_ev_match"])
             else:
                 new_ev_count, all_ev_fps, just_added_ev_fps = sync_and_append_data(live_scanned_events, EVENT_DB, is_job=False)
                 
                 if new_ev_count > 0:
                     st.toast(f"成功录入 {new_ev_count} 个未来新活动！")
-                    st.success(f"🎉 捕获专业匹配活动！现场呈现 **{len(live_scanned_events)}** 个完全对齐的活动情报，其中 **{new_ev_count}** 个新情报已吸纳进 List！" if lang == "简体中文" else f"🎉 捕獲專業匹配活動！現場呈現 **{len(live_scanned_events)}** 個完全對齊的活動情報，其中 **{new_ev_count}** 個新情報已吸納進 List！")
+                    st.success(f"🎉 ({lang}) 呈现 **{len(live_scanned_events)}** 个完全对齐的活动情报，其中 **{new_ev_count}** 个已吸纳进 List！")
                 else:
-                    st.info(f"ℹ️ 现场呈现 **{len(live_scanned_events)}** 个与当前专业完全对齐的活动，已同步至 List 保险箱。" if lang == "简体中文" else f"ℹ️ 現場呈現 **{len(live_scanned_events)}** 個與當前專業完全對齊的活動，已同步至 List 保險箱。")
+                    st.info(f"ℹ️ ({lang}) 呈现 **{len(live_scanned_events)}** 个与当前专业完全对齐的活动，已同步至 List。")
                     
                 for idx, ev in enumerate(live_scanned_events, 1):
                     fingerprint = f"{ev.get('title','')}_{ev.get('date', '')}"
@@ -607,12 +660,12 @@ with tab2:
                     
                     with st.container(border=True):
                         st.subheader(f"{ev.get('type','活动')} | {idx}. {ev.get('title','Event Title')}")
-                        st.info(f"📅 **举办/活动日期:** `{ev.get('date', '2026-2027')}`  |  📍 **地点:** `{ev.get('location', '香港')}`")
+                        st.info(f"📅 **日期:** `{ev.get('date', '2026-2027')}`  |  📍 **地点:** `{ev.get('location', '香港')}`")
                         if ev.get("snippet"):
-                            st.caption(f"📝 活动简要: {ev['snippet']}")
-                        st.link_button("前往活动官网/详情 ➔" if lang == "简体中文" else "前往活動官網/詳情 ➔", ev.get('link','https://www.polyu.edu.hk'))
+                            st.caption(f"📝 简要: {ev['snippet']}")
+                        st.link_button(lang_dict["link_btn_ev"], ev.get('link','https://www.polyu.edu.hk'))
 
-# --- Tab 3: 历史累计中央总大账本 (纯净过滤显示) ---
+# --- Tab 3: 历史累计中央总大账本 ---
 with tab3:
     st.header("💾 cc 智能求职与创科活动历史中央账本")
     st.markdown(lang_dict["tab3_desc"])
@@ -620,35 +673,35 @@ with tab3:
     c_job_book, c_event_book = st.columns(2)
     
     with c_job_book:
-        st.subheader("📋 累计收录的岗位 List" if lang == "简体中文" else "📋 累計收錄的崗位 List")
+        st.subheader(lang_dict["hist_job_title"])
         all_recorded_jobs = load_local_data(JOB_DB)
         if not all_recorded_jobs:
-            st.info("🔍 暂无历史岗位记录。请在第一个标签页进行实时检索。")
+            st.info(lang_dict["hist_job_empty"])
         else:
-            st.metric("累计独特岗位数" if lang == "简体中文" else "累計獨特崗位數", f"{len(all_recorded_jobs)} 个")
+            st.metric(lang_dict["hist_job_metric"], f"{len(all_recorded_jobs)} 个")
             for idx, job in enumerate(all_recorded_jobs, 1):
                 if isinstance(job, dict):
                     with st.expander(f"{idx}. [{job.get('company','Company')}] {job.get('title','Job')}"):
                         st.markdown(f"**雇主:** `{job.get('company','Company')}` | **渠道:** {job.get('source','JobsDB')} | **录入时间:** `{job.get('recorded_at', '未知')}`")
                         if job.get("snippet"):
                             st.caption(f"📝 说明: {job['snippet']}")
-                        st.link_button("直达 JobsDB 查看 ➔" if lang == "简体中文" else "直達 JobsDB 查看 ➔", job.get('link'))
+                        btn_label = lang_dict["link_btn_job"].format(company=job.get('company','Company'))
+                        st.link_button(btn_label, job.get('link'))
                     
     with c_event_book:
-        st.subheader("🎉 累计收录的未来活动 List" if lang == "简体中文" else "🎉 累計收錄的未來活動 List")
+        st.subheader(lang_dict["hist_ev_title"])
         all_recorded_events = load_local_data(EVENT_DB)
         
-        # 再次执行专业隔离防护，防止过往的历史非本专业缓存误显
         if "computer" not in active_major_keyword and "show all" not in active_major_keyword:
             all_recorded_events = [ev for ev in all_recorded_events if isinstance(ev, dict) and "ctf" not in ev.get('title','').lower() and "cybersecurity" not in ev.get('title','').lower()]
 
         if not all_recorded_events:
-            st.info("🔍 暂无历史活动记录。请在第二个标签页进行实时雷达扫描。")
+            st.info(lang_dict["hist_ev_empty"])
         else:
-            st.metric("累计独特活动数" if lang == "简体中文" else "累計獨特崗位數", f"{len(all_recorded_events)} 个")
+            st.metric(lang_dict["hist_ev_metric"], f"{len(all_recorded_events)} 个")
             for idx, ev in enumerate(all_recorded_events, 1):
                 if isinstance(ev, dict):
                     with st.expander(f"{idx}. [{ev.get('type','活动')}] {ev.get('title','Event')}"):
                         st.markdown(f"📅 **日期:** `{ev.get('date','未来')}` | 📍 **地点:** `{ev.get('location','香港')}`")
-                        st.caption(f"⏱️ 记账录入时间: {ev.get('recorded_at', '未知')}" if lang == "简体中文" else f"⏱️ 記賬錄入時間: {ev.get('recorded_at', '未知')}")
-                        st.link_button("活动官网 ➔" if lang == "简体中文" else "活動官網 ➔", ev.get('link','https://www.polyu.edu.hk'))
+                        st.caption(f"⏱️ 记账录入时间: {ev.get('recorded_at', '未知')}")
+                        st.link_button(lang_dict["link_btn_ev"], ev.get('link','https://www.polyu.edu.hk'))
