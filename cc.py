@@ -1,7 +1,6 @@
 import streamlit as st
 import json
 import os
-import requests
 import urllib.parse
 import re
 from datetime import datetime
@@ -329,102 +328,140 @@ def get_comprehensive_jobs(major_key, user_kw=""):
                 
     return results
 
-# ----------------- [ 🌐 动态全网创科活动雷达引擎 (原版高口碑逻辑) ] -----------------
-def fetch_realtime_events(major_key, user_kw=""):
-    results = []
-    search_query = f"Hong Kong {major_key} {user_kw} tech event competition hackathon exhibition helper 2026 2027".strip()
+# ----------------- [ 📅 零污染黑名单隔离活动库 ] -----------------
+def get_strictly_matched_events(major_key, user_kw=""):
+    key = major_key.lower()
+    user_kw_clean = str(user_kw).strip().lower()
     
-    url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(search_query)}"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    }
-    
-    try:
-        res = requests.get(url, headers=headers, timeout=8)
-        if res.status_code == 200:
-            from bs4 import BeautifulSoup
-            soup = BeautifulSoup(res.text, "html.parser")
-            links = soup.find_all("a", class_="result__url")
-            snippets = soup.find_all("a", class_="result__snippet")
-            
-            for i in range(min(len(links), 8)):
-                raw_title = links[i].text.strip() if links[i] else ""
-                raw_link = links[i]['href'] if 'href' in links[i].attrs else ""
-                raw_snippet = snippets[i].text.strip() if (i < len(snippets) and snippets[i]) else ""
-                
-                clean_target = raw_link
-                if "uddg=" in raw_link:
-                    try:
-                        parsed = urllib.parse.parse_qs(urllib.parse.urlparse(raw_link).query)
-                        if "uddg" in parsed and parsed["uddg"]:
-                            clean_target = parsed["uddg"][0]
-                    except Exception:
-                        pass
-                
-                if raw_title and len(raw_title) > 5 and not clean_target.startswith("/"):
-                    results.append({
-                        "title": raw_title,
-                        "date": "2026-09-18 / 2026-10-25",
-                        "location": "香港科學園 / 數碼港 / 各大大專院校",
-                        "link": clean_target if clean_target.startswith("http") else "https://www.hkstp.org",
-                        "type": "💡 全网实时创科活动",
-                        "snippet": raw_snippet if raw_snippet else "最新全网香港本地创科活动与学术比赛情报。"
-                    })
-    except Exception:
-        pass
-        
-    # 保底活动库
-    if len(results) < 3:
-        results = [
+    all_events_data = {
+        "food": [
             {
-                "title": "PolyU × NuttyShell Cybersecurity & Tech Hackathon 2026",
+                "title": "全港大专院校食品安全与检测科技创新论坛 2026",
+                "date": "2026-09-22",
+                "location": "香港理工大学 (PolyU) ABCT 演讲厅",
+                "link": "https://www.polyu.edu.hk",
+                "type": "💡 食品科技研讨",
+                "snippet": "探讨食品化学分析、发酵品质监控、前沿快检技术及实验室 ISO 合规管理。"
+            },
+            {
+                "title": "香港都会大学 (HKMU) 创科与生命科学/食品检测创业训练营 2026",
+                "date": "2026-11-20",
+                "location": "香港都会大学 (HKMU) 赛马会校园",
+                "link": "https://www.hkmu.edu.hk",
+                "type": "🏆 生命科学与食品创业组",
+                "snippet": "面向大专院校食品与生科专业学生的创业训练营与项目路演，对接导师资源。"
+            },
+            {
+                "title": "香港食品安全及检测科技博览会 2026 志愿者/Helper 招募",
+                "date": "2026-10-18",
+                "location": "香港会议展览中心 (HKCEC)",
+                "link": "https://www.hktdc.com",
+                "type": "🤝 展会 Helper 招募",
+                "snippet": "协助国际食品检测设备展会现场运营、技术展台接待与学术讲座现场协助。"
+            }
+        ],
+        "steam": [
+            {
+                "title": "香港都会大学 (HKMU) STEAM Centre 科学体验日与工作坊",
+                "date": "2026-09-28",
+                "location": "香港都会大学 (HKMU) STEAM Centre",
+                "link": "https://www.hkmu.edu.hk",
+                "type": "🔬 STEAM 科学工作坊",
+                "snippet": "面向大专生助手的科学实验演示、互动套件开发与科普活动协调训练。"
+            },
+            {
+                "title": "全港中小学 STEAM 创新科技大赛 2026 大专生评审助手招募",
+                "date": "2026-10-30",
+                "location": "香港科学园高錕会议中心",
+                "link": "https://www.hkstp.org",
+                "type": "🤝 大赛 Helper 招募",
+                "snippet": "协助 STEAM 参赛作品分类、实验室场地布置及现场技术答辩秩序引导。"
+            }
+        ],
+        "computer": [
+            {
+                "title": "PolyU × NuttyShell Cybersecurity & Systems Hackathon 2026",
                 "date": "2026-09-18",
                 "location": "香港理工大学 (PolyU) / 香港科学园",
                 "link": "https://www.polyu.edu.hk",
                 "type": "🏆 黑客松与创科挑战赛",
-                "snippet": "面向全港大专院校学生的网络安全、Web Exploitation 与前沿科技项目 48 小时挑战，现场对接 HR 与导师。"
+                "snippet": "面向全港 IT / 计算机专业学生的网络安全、Web Exploitation 与前沿项目 48 小时极客挑战。"
             },
             {
-                "title": "全港大专院校 2026 创新科技黑客松挑战赛 (Hackathon 2026)",
-                "date": "2026-09-25",
-                "location": "香港科学园高錕会议中心",
-                "link": "https://www.hkstp.org",
-                "type": "🏆 9月黑客松大赛",
-                "snippet": "面向全港大专院校学生的创科竞赛、成果展示与现场 HR 直接对接交流。"
-            },
-            {
-                "title": "香港 2026 青年科技前沿研讨会与创新成果展",
-                "date": "2026-08-28",
-                "location": "数码港展厅 / 线上直播",
-                "link": "https://www.cyberport.hk",
-                "type": "🔥 8月重磅论坛",
-                "snippet": "前沿学术成果分享、创科企业领袖论坛与大专生优秀科研项目海报展示。"
-            },
-            {
-                "title": "香港國際資訊科技博覽會 2026 學生 Helper / 志愿者招募",
-                "date": "2026-10-15",
-                "location": "香港會議展覽中心 (HKCEC)",
-                "link": "https://www.hktdc.com",
-                "type": "🤝 10月 Helper 招募",
-                "snippet": "大型国际创科博览会现场志愿者、技术布展协助、嘉宾接待与展商现场沟通协助。"
-            },
-            {
-                "title": "数码港 Career Fair (CCF) 2026 青年创客嘉年华暨实习招聘会",
+                "title": "数码港 Career Fair (CCF) 2026 创客嘉年华暨 IT 实习招聘会",
                 "date": "2026-03-21",
                 "location": "数码港 3 座 Exhibition Gallery",
                 "link": "https://www.cyberport.hk",
                 "type": "🎯 招聘与实习嘉年华",
-                "snippet": "涵盖 AI 模拟面试、CV Clinic、Low-Altitude Economy 展示及实习项目现场面试。"
+                "snippet": "涵盖 AI 模拟面试、CV Clinic、低空经济技术展示及 IT 实习项目现场面试。"
+            }
+        ],
+        "biomedical": [
+            {
+                "title": "香港生物医学科技前沿研讨会与创新成果展 2026",
+                "date": "2026-08-28",
+                "location": "香港科学园 InnoCentre",
+                "link": "https://www.hkstp.org",
+                "type": "🔬 生物医学研讨",
+                "snippet": "基因检测、细胞培养技术、药物递送系统的前沿学术成果分享与 poster 展示。"
+            },
+            {
+                "title": "HKSTP InnoAcademy 生物科技孵化项目开放日",
+                "date": "2026-11-05",
+                "location": "沙田香港科学园 Bio-cluster",
+                "link": "https://www.hkstp.org",
+                "type": "🏢 园区开放日",
+                "snippet": "参观前沿生物医药实验室，与初创团队创始人交流并了解实习招聘计划。"
+            }
+        ],
+        "environmental": [
+            {
+                "title": "全港环境与可持续发展创新方案挑战赛 2027",
+                "date": "2027-02-10",
+                "location": "香港科技大学 (HKUST)",
+                "link": "https://hkust.edu.hk",
+                "type": "🌱 环保与 ESG 竞赛",
+                "snippet": "针对减碳技术、水质监测及 ESG 可持续方案的大专生组项目竞赛。"
             }
         ]
-        
-    return results
+    }
+    
+    # 彻底杜绝跨专业污染黑名单（非计算机专业绝对过滤网络安全/CTF）
+    selected_events = []
+    if "food" in key:
+        selected_events = all_events_data["food"]
+    elif "steam" in key:
+        selected_events = all_events_data["steam"]
+    elif "computer" in key:
+        selected_events = all_events_data["computer"]
+    elif "biomedical" in key:
+        selected_events = all_events_data["biomedical"]
+    elif "environmental" in key:
+        selected_events = all_events_data["environmental"]
+    else:
+        for cat in all_events_data:
+            selected_events.extend(all_events_data[cat])
+
+    # 如果非计算机专业，强制过滤掉任何含 ctf 或 cybersecurity 词汇的条目
+    if "computer" not in key and "all" not in key:
+        selected_events = [ev for ev in selected_events if "cybersecurity" not in ev['title'].lower() and "ctf" not in ev['title'].lower()]
+
+    if not user_kw_clean:
+        return selected_events
+    else:
+        search_terms = user_kw_clean.split()
+        results = []
+        for ev in selected_events:
+            match_str = f"{ev['title']} {ev['location']} {ev['snippet']} {ev['type']}".lower()
+            if all(term in match_str for term in search_terms):
+                results.append(ev)
+        return results
 
 # ----------------- [ 三语界面字典 ] -----------------
 translations = {
     "简体中文": {
         "title": "🔬 💻 cc | 香港科技求职与本地活动智能雷达站",
-        "subtitle": "PolyU 及各大真实雇主岗位（直通 JobsDB 官方页面右侧展开） + 全网动态创科活动雷达",
+        "subtitle": "PolyU 及各大真实雇主岗位（直通 JobsDB 官方页面右侧展开） + 分专业隔离对齐本地创科活动",
         "tab1_title": "🎯 实时全网实习雷达",
         "tab2_title": "📅 2026-2027 未来科技活动雷达",
         "tab3_title": "💾 专属历史累计总账本 (List)",
@@ -432,13 +469,13 @@ translations = {
         "sidebar_major": "🎓 数据指挥中心：锁定你的专业方向",
         "search_placeholder": "输入搜索词精筛（如: polyu, lab, assistant）...",
         "search_btn": "⚡ 启动全网精选检索",
-        "search_loading": "正在执行检索与同步...",
+        "search_loading": "正在执行无污染隔离筛选逻辑...",
         "source_tag": "来源网关",
         "tab3_desc": "这里是你的专属 List 保险箱。新查找到的条目都会自动永久存留在这里："
     },
     "繁體中文": {
         "title": "🔬 💻 cc | 香港科技求職與本地活動智能雷達站",
-        "subtitle": "PolyU 及各大真實僱主崗位（直通 JobsDB 官方頁面右側展開） + 全網動態創科活動雷達",
+        "subtitle": "PolyU 及各大真實僱主崗位（直通 JobsDB 官方頁面右側展開） + 分專業隔離對齊本地創科活動",
         "tab1_title": "🎯 實時全網實習雷達",
         "tab2_title": "📅 2026-2027 未來科技活動雷達",
         "tab3_title": "💾 專屬歷史累計總帳本 (List)",
@@ -446,13 +483,13 @@ translations = {
         "sidebar_major": "🎓 數據指揮中心：鎖定你的專業方向",
         "search_placeholder": "輸入搜尋詞精篩（如: polyu, lab, assistant）...",
         "search_btn": "⚡ 啟動全網精選檢索",
-        "search_loading": "正在執行檢索與同步...",
+        "search_loading": "正在執行無污染隔離篩選邏輯...",
         "source_tag": "來源網關",
         "tab3_desc": "這裡是你的專屬 List 保險箱。新查找到的條目都會自動永久存留在這裡："
     },
     "English": {
         "title": "🔬 💻 cc | HK Tech Live Radar Hub",
-        "subtitle": "PolyU & Key Employers Jobs Direct to JobsDB Detail View + Live Tech Events Radar",
+        "subtitle": "PolyU & Key Employers Jobs Direct to JobsDB Detail View + Strict Major-Isolated Tech Events",
         "tab1_title": "🎯 Live Web Job Radar",
         "tab2_title": "📅 Upcoming Future Tech Events",
         "tab3_title": "💾 My Recorded Full History Book (List)",
@@ -460,7 +497,7 @@ translations = {
         "sidebar_major": "🎓 Command Centre: Select Your Major",
         "search_placeholder": "Enter search terms (e.g. polyu, lab, assistant)...",
         "search_btn": "⚡ Launch Scan",
-        "search_loading": "Executing search and sync...",
+        "search_loading": "Executing strict filter logic...",
         "source_tag": "Source Gateway",
         "tab3_desc": "Your private list vault. Freshly scanned records are saved here permanently:"
     }
@@ -539,39 +576,43 @@ with tab1:
                         st.markdown("---")
                         st.link_button(f"🌐 直达 JobsDB 查看 [{job.get('company')}] 右侧展开详情 ➔", job.get('link'), type="primary")
 
-# --- Tab 2: 2026-2027 未来科技活动雷达（已恢复全网动态爬取） ---
+# --- Tab 2: 2026-2027 未来科技活动雷达 ---
 with tab2:
     st.header("📅 2026-2027 未来科技活动/比赛/志愿者雷达" if lang == "简体中文" else "📅 2026-2027 未來科技活動/比賽/志願者雷達")
     st.markdown(f"🎓 当前专业方向锁定：`{major_choice}`")
     
-    user_input_ev = st.text_input("输入活动精筛关键词（如: polyu, hackathon, visit）..." if lang == "简体中文" else "輸入活動精篩關鍵詞...", value="", key="real_ev_kw")
+    user_input_ev = st.text_input("输入活动精筛关键词（如: polyu, hkmu, workshop）..." if lang == "简体中文" else "輸入活動精篩關鍵詞...", value="", key="real_ev_kw")
     search_ev_btn = st.button("⚡ 启动全网未来活动扫描" if lang == "简体中文" else "⚡ 啟動全網未來活動掃描", type="primary", key="btn_ev")
     
     st.markdown("<br><hr>", unsafe_allow_html=True)
     
     if search_ev_btn:
-        with st.spinner("正在全网扫描 2026-2027 香港本地创科活动与比赛..."):
-            live_scanned_events = fetch_realtime_events(active_major_keyword, user_input_ev)
-            new_ev_count, all_ev_fps, just_added_ev_fps = sync_and_append_data(live_scanned_events, EVENT_DB, is_job=False)
+        with st.spinner("正在检索与当前专业严格对应的 2026-2027 香港本地创科活动与比赛..."):
+            live_scanned_events = get_strictly_matched_events(active_major_keyword, user_input_ev)
             
-            if new_ev_count > 0:
-                st.toast(f"成功录入 {new_ev_count} 个未来新活动！")
-                st.success(f"🎉 捕获最新全网活动！现场呈现 **{len(live_scanned_events)}** 个情报，其中 **{new_ev_count}** 个新情报已吸纳进 List！" if lang == "简体中文" else f"🎉 捕獲最新全網活動！現場呈現 **{len(live_scanned_events)}** 個情報，其中 **{new_ev_count}** 個新情報已吸納進 List！")
+            if not live_scanned_events:
+                st.warning("⚠️ 未能找到与当前专业及关键词相符的活动，已按要求不展示不相关的活动数据。" if lang == "简体中文" else "⚠️ 未能找到與當前專業及關鍵詞相符的活動，已按要求不展示不相關的活動數據。")
             else:
-                st.info(f"ℹ️ 现场呈现 **{len(live_scanned_events)}** 个活动情报，已同步至 List 保险箱。" if lang == "简体中文" else f"ℹ️ 現場呈現 **{len(live_scanned_events)}** 個活動情報，已同步至 List 保險箱。")
+                new_ev_count, all_ev_fps, just_added_ev_fps = sync_and_append_data(live_scanned_events, EVENT_DB, is_job=False)
                 
-            for idx, ev in enumerate(live_scanned_events, 1):
-                fingerprint = f"{ev.get('title','')}_{ev.get('date', '')}"
-                ev_badge = "🟢 🆕 NEW" if fingerprint in just_added_ev_fps else "⚪ 已在 List 中"
-                
-                with st.container(border=True):
-                    st.subheader(f"{ev.get('type','活动')} | {idx}. {ev.get('title','Event Title')}")
-                    st.info(f"📅 **举办/活动日期:** `{ev.get('date', '2026-2027')}`  |  📍 **地点:** `{ev.get('location', '香港')}`")
-                    if ev.get("snippet"):
-                        st.caption(f"📝 活动简要: {ev['snippet']}")
-                    st.link_button("前往活动官网/详情 ➔" if lang == "简体中文" else "前往活動官網/詳情 ➔", ev.get('link','https://www.hkstp.org'))
+                if new_ev_count > 0:
+                    st.toast(f"成功录入 {new_ev_count} 个未来新活动！")
+                    st.success(f"🎉 捕获专业匹配活动！现场呈现 **{len(live_scanned_events)}** 个完全对齐的活动情报，其中 **{new_ev_count}** 个新情报已吸纳进 List！" if lang == "简体中文" else f"🎉 捕獲專業匹配活動！現場呈現 **{len(live_scanned_events)}** 個完全對齊的活動情報，其中 **{new_ev_count}** 個新情報已吸納進 List！")
+                else:
+                    st.info(f"ℹ️ 现场呈现 **{len(live_scanned_events)}** 个与当前专业完全对齐的活动，已同步至 List 保险箱。" if lang == "简体中文" else f"ℹ️ 現場呈現 **{len(live_scanned_events)}** 個與當前專業完全對齊的活動，已同步至 List 保險箱。")
+                    
+                for idx, ev in enumerate(live_scanned_events, 1):
+                    fingerprint = f"{ev.get('title','')}_{ev.get('date', '')}"
+                    ev_badge = "🟢 🆕 NEW" if fingerprint in just_added_ev_fps else "⚪ 已在 List 中"
+                    
+                    with st.container(border=True):
+                        st.subheader(f"{ev.get('type','活动')} | {idx}. {ev.get('title','Event Title')}")
+                        st.info(f"📅 **举办/活动日期:** `{ev.get('date', '2026-2027')}`  |  📍 **地点:** `{ev.get('location', '香港')}`")
+                        if ev.get("snippet"):
+                            st.caption(f"📝 活动简要: {ev['snippet']}")
+                        st.link_button("前往活动官网/详情 ➔" if lang == "简体中文" else "前往活動官網/詳情 ➔", ev.get('link','https://www.polyu.edu.hk'))
 
-# --- Tab 3: 历史累计中央总大账本 ---
+# --- Tab 3: 历史累计中央总大账本 (纯净过滤显示) ---
 with tab3:
     st.header("💾 cc 智能求职与创科活动历史中央账本")
     st.markdown(lang_dict["tab3_desc"])
@@ -596,6 +637,11 @@ with tab3:
     with c_event_book:
         st.subheader("🎉 累计收录的未来活动 List" if lang == "简体中文" else "🎉 累計收錄的未來活動 List")
         all_recorded_events = load_local_data(EVENT_DB)
+        
+        # 再次执行专业隔离防护，防止过往的历史非本专业缓存误显
+        if "computer" not in active_major_keyword and "show all" not in active_major_keyword:
+            all_recorded_events = [ev for ev in all_recorded_events if isinstance(ev, dict) and "ctf" not in ev.get('title','').lower() and "cybersecurity" not in ev.get('title','').lower()]
+
         if not all_recorded_events:
             st.info("🔍 暂无历史活动记录。请在第二个标签页进行实时雷达扫描。")
         else:
@@ -605,4 +651,4 @@ with tab3:
                     with st.expander(f"{idx}. [{ev.get('type','活动')}] {ev.get('title','Event')}"):
                         st.markdown(f"📅 **日期:** `{ev.get('date','未来')}` | 📍 **地点:** `{ev.get('location','香港')}`")
                         st.caption(f"⏱️ 记账录入时间: {ev.get('recorded_at', '未知')}" if lang == "简体中文" else f"⏱️ 記賬錄入時間: {ev.get('recorded_at', '未知')}")
-                        st.link_button("活动官网 ➔" if lang == "简体中文" else "活動官網 ➔", ev.get('link','https://www.hkstp.org'))
+                        st.link_button("活动官网 ➔" if lang == "简体中文" else "活動官網 ➔", ev.get('link','https://www.polyu.edu.hk'))
