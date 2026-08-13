@@ -55,35 +55,11 @@ def sync_and_append_data(current_items, filepath, is_job=True):
         
     return new_detected_count, old_fingerprints, just_added_fingerprints
 
-# 🌟 100% 干净的标准 URL
 def build_clean_search_url(job_title):
     clean_kw = re.sub(r'[^a-zA-Z0-9\s]', ' ', str(job_title)).strip()
+    clean_kw = re.sub(r'\s+', ' ', clean_kw)
     encoded_kw = urllib.parse.quote(clean_kw if clean_kw else "internship")
     return f"https://hk.jobsdb.com/jobs?keywords={encoded_kw}"
-
-# 🌟 核心功能：单岗位独占详情弹窗 (聚焦展示单一岗位，绝不出错)
-@st.dialog("📄 岗位专属独立详情")
-def show_single_job_modal(job):
-    st.title(job.get("title", "岗位详情"))
-    st.caption(f"🏢 **招聘机构/公司:** {job.get('company', '香港企业')} | 📍 **地点:** 香港 SAR")
-    st.markdown("---")
-    
-    st.subheader("📌 岗位职责描述 (Job Overview)")
-    st.write(job.get("snippet", "负责协助团队进行相关的日常操作、技术项目跟进及测试支持工作。"))
-    
-    st.subheader("🎯 任职资格与要求 (Key Requirements)")
-    reqs = job.get("requirements", [
-        "大专或本科在读学生，持有计算机、生物医学、环境或相关专业背景。",
-        "具备良好的团队沟通表达能力与独立解决问题的意识。",
-        "熟悉基础的项目工具、操作流程或测试规范。",
-        "具备在香港合法合规实习/工作的资格（全职/兼职实习）。"
-    ])
-    for r in reqs:
-        st.markdown(f"- {r}")
-        
-    st.markdown("---")
-    st.markdown("#### 🚀 一键申请/投递通道")
-    st.link_button("前往官方渠道投递简历 ➔", job.get('link', build_clean_search_url(job.get('title'))), type="primary", use_container_width=True)
 
 # ----------------- [ 🌐 实时互联网搜索引擎内核 ] -----------------
 def fetch_realtime_internet_data(query_keyword, is_job=True):
@@ -222,7 +198,7 @@ def fetch_realtime_internet_data(query_keyword, is_job=True):
 translations = {
     "简体中文": {
         "title": "🔬 💻 cc | 香港科技求职与本地活动智能全网雷达站",
-        "subtitle": "已全面接入【单岗位独占详情弹窗】与未来活动时间线",
+        "subtitle": "已接入零死循环流式框架，支持原生独占岗位详情查看与未来活动时间线",
         "tab1_title": "🎯 实时全网实习雷达",
         "tab2_title": "📅 2026-2027 未来科技活动雷达",
         "tab3_title": "💾 专属历史累计总账本 (List)",
@@ -232,14 +208,13 @@ translations = {
         "search_btn": "⚡ 启动全网实时检索",
         "search_loading": "正在穿透互联网获取最新岗位信息与要求...",
         "source_tag": "数据来源",
-        "view_btn": "📖 打开本岗位独占详情页",
         "jobsdb_notice": "🚀 官方网关已激活：点击下方按钮直接跳转至对应专业的 JobsDB 现场。",
         "jobsdb_btn": "前往 JobsDB 查看该专业全部岗位 ➔",
         "tab3_desc": "这里是你的专属 List 保险箱。新查找到的条目都会自动永久存留在这里："
     },
     "繁體中文": {
         "title": "🔬 💻 cc | 香港科技求職與本地活動智能全網雷達站",
-        "subtitle": "已全面接入【單崗位獨占詳情彈窗】與未來活動時間線",
+        "subtitle": "已接入零死循環流式框架，支持原生獨占崗位詳情查看與未來活動時間線",
         "tab1_title": "🎯 實時全網實習雷達",
         "tab2_title": "📅 2026-2027 未來科技活動雷達",
         "tab3_title": "💾 專屬歷史累計總賬本 (List)",
@@ -249,14 +224,13 @@ translations = {
         "search_btn": "⚡ 啟動全網實時檢索",
         "search_loading": "正在穿透互聯網獲取最新崗位信息與要求...",
         "source_tag": "數據來源",
-        "view_btn": "📖 打開本崗位獨占詳情頁",
         "jobsdb_notice": "🚀 官方網關已激活：點擊下方按鈕直接跳轉至對應專業的 JobsDB 現場。",
         "jobsdb_btn": "前往 JobsDB 查看該專業全部崗位 ➔",
         "tab3_desc": "這裡是你的專屬 List 保險箱。新查找到的條目都會自動永久存留在這裡："
     },
     "English": {
         "title": "🔬 💻 cc | HK Tech Live Internet Radar Hub",
-        "subtitle": "Native Single Job Focus Dialog & Upcoming Future Events",
+        "subtitle": "Stable Zero-Loop Native Focus Architecture & Future Event Lineup",
         "tab1_title": "🎯 Live Web Job Radar",
         "tab2_title": "📅 Upcoming Future Tech Events",
         "tab3_title": "💾 My Recorded Full History Book (List)",
@@ -266,7 +240,6 @@ translations = {
         "search_btn": "⚡ Launch Live Internet Scan",
         "search_loading": "Scanning web for real-time postings and requirements...",
         "source_tag": "Source",
-        "view_btn": "📖 Open Single Job Focus Detail",
         "jobsdb_notice": "🚀 Official Gateway active for your target discipline.",
         "jobsdb_btn": "Open Official JobsDB Verified List ➔",
         "tab3_desc": "Your private list vault. Freshly scanned records are saved here permanently:"
@@ -277,7 +250,6 @@ st.sidebar.markdown(f"### {translations['English']['sidebar_lang']}")
 lang = st.sidebar.selectbox("Choose Language:", ["简体中文", "繁體中文", "English"], label_visibility="collapsed")
 lang_dict = translations[lang]
 
-# ----------------- [ 界面渲染与标签页创建 ] -----------------
 st.title(lang_dict["title"])
 st.markdown(lang_dict["subtitle"])
 st.markdown("---")
@@ -303,7 +275,7 @@ keyword_map = {
 }
 active_major_keyword = keyword_map.get(major_choice, "internship")
 
-# --- Tab 1: 互联网实习雷达 ---
+# --- Tab 1: 互联网实习雷达 (无死循环，原生展开完整岗位详情) ---
 with tab1:
     st.header("🎯 互联网实习岗位实时检索雷达" if lang == "简体中文" else "🎯 互聯網實習崗位實時檢索雷達")
     st.markdown(f"🎓 当前专业方向锁定：`{major_choice}`")
@@ -335,10 +307,17 @@ with tab1:
                 st.subheader(f"{idx}. {job.get('title','Job Title')}")
                 st.markdown(f"**🏢 机构/公司:** `{job.get('company','Company')}` | `{lang_dict['source_tag']}: {job.get('source','Web')}` | **状态:** `{badge}`")
                 
-                # 🌟 点击此按钮，直接弹出一个独占的大窗口只显示该岗位的全部细节！
-                if st.button(f"📖 点击打开 [{job.get('title')[:25]}...] 独立详情", key=f"btn_modal_{idx}"):
-                    show_single_job_modal(job)
-                    
+                # 🌟 原生全量展开展示单岗位详情，无任何 Rerun 死循环风险
+                with st.expander(f"📄 点击展开查看 [{job.get('title')}] 的独占岗位详情与 Requirements", expanded=True):
+                    st.markdown("#### 岗位职责概述")
+                    st.write(job.get("snippet", "暂无简述"))
+                    st.markdown("#### 核心任职要求 (Key Requirements)")
+                    reqs = job.get("requirements", [])
+                    for r in reqs:
+                        st.markdown(f"- {r}")
+                    st.markdown("---")
+                    st.link_button("🌐 一键前往官方投递通道 ➔", job.get('link', build_clean_search_url(job.get('title'))), type="primary")
+
                 st.markdown("---")
 
 # --- Tab 2: 2026-2027 未来活动雷达 ---
@@ -398,8 +377,9 @@ with tab3:
                 if isinstance(job, dict):
                     with st.expander(f"{idx}. {job.get('title','Job')} @ {job.get('company','Company')}"):
                         st.markdown(f"**渠道:** {job.get('source','Web')} | **录入时间:** `{job.get('recorded_at', '未知')}`" if lang == "简体中文" else f"**渠道:** {job.get('source','Web')} | **條目時間:** `{job.get('recorded_at', '未知')}`")
-                        if st.button(f"📖 打开专属详情页", key=f"btn_hist_{idx}"):
-                            show_single_job_modal(job)
+                        if job.get("snippet"):
+                            st.caption(f"📝 说明: {job['snippet']}")
+                        st.link_button("一键跳转投递 ➔" if lang == "简体中文" else "一鍵跳轉投遞 ➔", job.get('link', build_clean_search_url(job.get('title','internship'))))
                     
     with c_event_book:
         st.subheader("🎉 累计收录的未来活动 List" if lang == "简体中文" else "🎉 累計收錄的未來活動 List")
