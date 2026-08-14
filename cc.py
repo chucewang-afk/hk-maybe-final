@@ -6,7 +6,7 @@ import re
 from datetime import datetime
 
 # 1. 网页基础配置
-st.set_page_config(page_title="cc | 香港科技求职与活动站", page_icon="🔬", layout="wide")
+st.set_page_config(page_title="HKMU Applied Science | 科技求职与活动站", page_icon="🔬", layout="wide")
 
 JOB_DB = "recorded_jobs.json"
 EVENT_DB = "recorded_events.json"
@@ -455,18 +455,18 @@ def get_strictly_matched_events(major_key, user_kw=""):
                 results.append(ev)
         return results
 
-# ----------------- [ 🌐 完整多语言词典 ] -----------------
+# ----------------- [ 🌐 HKMU Department of Applied Science 专用多语言词典 ] -----------------
 translations = {
     "简体中文": {
-        "title": "🔬 💻 cc | 香港科技求职与本地活动智能雷达站",
-        "subtitle": "PolyU 及各大真实雇主岗位（直通 JobsDB 官方页面右侧展开） + 分专业隔离对齐本地创科活动",
+        "title": "🔬 💻 HKMU Department of Applied Science 专用求职与活动站",
+        "subtitle": "HKMU 应用科学系专属：真实雇主岗位（直通 JobsDB 官方页面右侧展开） + 分专业隔离本地创科活动",
         "tab1_title": "🎯 实时全网实习雷达",
         "tab2_title": "📅 2026-2027 未来科技活动雷达",
         "tab3_title": "💾 专属历史累计总账本 (List)",
         "sidebar_lang": "🌐 切换语言 / Language",
         "sidebar_major": "🎓 数据指挥中心：锁定你的专业方向",
-        "search_placeholder": "输入搜索词精筛（如: polyu, lab, assistant）...",
-        "search_placeholder_ev": "输入活动精筛关键词（如: polyu, hkmu, workshop）...",
+        "search_placeholder": "输入搜索词精筛（如: hkmu, lab, assistant）...",
+        "search_placeholder_ev": "输入活动精筛关键词（如: hkmu, workshop, forum）...",
         "search_btn": "⚡ 启动全网精选检索",
         "search_btn_ev": "⚡ 启动全网未来活动扫描",
         "search_loading": "正在执行无污染隔离筛选逻辑...",
@@ -490,15 +490,15 @@ translations = {
         "hist_ev_metric": "累计独特活动数"
     },
     "繁體中文": {
-        "title": "🔬 💻 cc | 香港科技求職與本地活動智能雷達站",
-        "subtitle": "PolyU 及各大真實僱主崗位（直通 JobsDB 官方頁面右側展開） + 分專業隔離對齊本地創科活動",
+        "title": "🔬 💻 HKMU Department of Applied Science 專用求職與活動站",
+        "subtitle": "HKMU 應用科學系專屬：真實僱主崗位（直通 JobsDB 官方頁面右側展開） + 分專業隔離本地創科活動",
         "tab1_title": "🎯 實時全網實習雷達",
         "tab2_title": "📅 2026-2027 未來科技活動雷達",
         "tab3_title": "💾 專屬歷史累計總帳本 (List)",
         "sidebar_lang": "🌐 切換語言 / Language",
         "sidebar_major": "🎓 數據指揮中心：鎖定你的專業方向",
-        "search_placeholder": "輸入搜尋詞精篩（如: polyu, lab, assistant）...",
-        "search_placeholder_ev": "輸入活動精篩關鍵詞（如: polyu, hkmu, workshop）...",
+        "search_placeholder": "輸入搜尋詞精篩（如: hkmu, lab, assistant）...",
+        "search_placeholder_ev": "輸入活動精篩關鍵詞（如: hkmu, workshop, forum）...",
         "search_btn": "⚡ 啟動全網精選檢索",
         "search_btn_ev": "⚡ 啟動全網未來活動掃描",
         "search_loading": "正在執行無污染隔離篩選邏輯...",
@@ -522,15 +522,15 @@ translations = {
         "hist_ev_metric": "累計獨特活動數"
     },
     "English": {
-        "title": "🔬 💻 cc | HK Tech Live Radar Hub",
-        "subtitle": "PolyU & Key Employers Jobs Direct to JobsDB Detail View + Strict Major-Isolated Tech Events",
+        "title": "🔬 💻 HKMU Department of Applied Science Gateway Hub",
+        "subtitle": "HKMU Department of Applied Science Hub: Employers Jobs Direct to JobsDB Right-Side View + Major-Isolated Events",
         "tab1_title": "🎯 Live Web Job Radar",
         "tab2_title": "📅 Upcoming Future Tech Events",
         "tab3_title": "💾 My Recorded Full History Book (List)",
         "sidebar_lang": "🌐 Language / 語言 / 语言",
         "sidebar_major": "🎓 Command Centre: Select Your Major",
-        "search_placeholder": "Enter search terms (e.g. polyu, lab, assistant)...",
-        "search_placeholder_ev": "Enter event keywords (e.g. polyu, hkmu, workshop)...",
+        "search_placeholder": "Enter search terms (e.g. hkmu, lab, assistant)...",
+        "search_placeholder_ev": "Enter event keywords (e.g. hkmu, workshop, forum)...",
         "search_btn": "⚡ Launch Scan",
         "search_btn_ev": "⚡ Launch Event Scan",
         "search_loading": "Executing strict filter logic...",
