@@ -328,10 +328,11 @@ def get_comprehensive_jobs(major_key, user_kw=""):
                 
     return results
 
-# ----------------- [ 📅 零污染黑名单隔离活动库 ] -----------------
+# ----------------- [ 📅 零污染隔离 + 自动淘汰过期活动库 ] -----------------
 def get_strictly_matched_events(major_key, user_kw=""):
     key = major_key.lower()
     user_kw_clean = str(user_kw).strip().lower()
+    current_date_str = datetime.now().strftime("%Y-%m-%d") # 获取当前日期
     
     all_events_data = {
         "food": [
@@ -389,7 +390,7 @@ def get_strictly_matched_events(major_key, user_kw=""):
             },
             {
                 "title": "数码港 Career Fair (CCF) 2026 创客嘉年华暨 IT 实习招聘会",
-                "date": "2026-03-21",
+                "date": "2026-03-21", # 这个日期已过期，将被自动过滤，不再显示和保存
                 "location": "数码港 3 座 Exhibition Gallery",
                 "link": "https://www.cyberport.hk",
                 "type": "🎯 招聘与实习嘉年华",
@@ -441,8 +442,12 @@ def get_strictly_matched_events(major_key, user_kw=""):
         for cat in all_events_data:
             selected_events.extend(all_events_data[cat])
 
+    # 1. 过滤不相关的专业内容
     if "computer" not in key and "all" not in key:
         selected_events = [ev for ev in selected_events if "cybersecurity" not in ev['title'].lower() and "ctf" not in ev['title'].lower()]
+        
+    # 2. 🌟 过滤已过期活动（只保留日期大于等于今天的活动，过期的直接丢弃）
+    selected_events = [ev for ev in selected_events if ev.get("date", "2099-12-31") >= current_date_str]
 
     if not user_kw_clean:
         return selected_events
@@ -477,7 +482,7 @@ translations = {
         "ev_header": "📅 2026-2027 未来科技活动/比赛/志愿者雷达",
         "current_major_prefix": "🎓 当前专业方向锁定：",
         "no_job_match": "⚠️ 现场未检索到与筛选条件完全相符的工作，已按您的要求不展示不相关的替代数据。请尝试调整或更换搜寻关键词。",
-        "no_ev_match": "⚠️ 未能找到与当前专业及关键词相符的活动，已按要求不展示不相关的活动数据。",
+        "no_ev_match": "⚠️ 未能找到与当前专业及关键词相符且未过期的活动。",
         "job_desc_head": "📝 岗位职责与工作内容 (Job Description)",
         "job_req_head": "🎯 核心任职要求 (Key Requirements)",
         "link_btn_job": "🌐 直达 JobsDB 查看 [{company}] 右侧展开详情 ➔",
@@ -485,9 +490,9 @@ translations = {
         "hist_job_title": "📋 累计收录的岗位 List",
         "hist_ev_title": "🎉 累计收录的未来活动 List",
         "hist_job_empty": "🔍 暂无历史岗位记录。请在第一个标签页进行实时检索。",
-        "hist_ev_empty": "🔍 暂无历史活动记录。请在第二个标签页进行实时雷达扫描。",
+        "hist_ev_empty": "🔍 暂无历史未来活动记录。请在第二个标签页进行扫描。",
         "hist_job_metric": "累计独特岗位数",
-        "hist_ev_metric": "累计独特活动数"
+        "hist_ev_metric": "累计待参与活动数"
     },
     "繁體中文": {
         "title": "🔬 💻 HKMU Department of Applied Science 專用求職與活動站",
@@ -509,7 +514,7 @@ translations = {
         "ev_header": "📅 2026-2027 未來科技活動/比賽/志願者雷達",
         "current_major_prefix": "🎓 當前專業方向鎖定：",
         "no_job_match": "⚠️ 現場未檢索到與篩選條件完全相符的工作，已按您的要求不展示不相關的替代數據。請嘗試調整或更換搜尋關鍵詞。",
-        "no_ev_match": "⚠️ 未能找到與當前專業及關鍵詞相符的活動，已按要求不展示不相關的活動數據。",
+        "no_ev_match": "⚠️ 未能找到與當前專業及關鍵詞相符且未過期的活動。",
         "job_desc_head": "📝 崗位職責與工作內容 (Job Description)",
         "job_req_head": "🎯 核心任職要求 (Key Requirements)",
         "link_btn_job": "🌐 直達 JobsDB 查看 [{company}] 右側展開詳情 ➔",
@@ -517,9 +522,9 @@ translations = {
         "hist_job_title": "📋 累計收錄的崗位 List",
         "hist_ev_title": "🎉 累計收錄的未來活動 List",
         "hist_job_empty": "🔍 暫無歷史崗位記錄。請在第一個標籤頁進行實時檢索。",
-        "hist_ev_empty": "🔍 暫無歷史活動記錄。請在第二個標籤頁進行實時雷達掃描。",
+        "hist_ev_empty": "🔍 暫無歷史未來活動記錄。請在第二個標籤頁進行掃描。",
         "hist_job_metric": "累計獨特崗位數",
-        "hist_ev_metric": "累計獨特活動數"
+        "hist_ev_metric": "累計待參與活動數"
     },
     "English": {
         "title": "🔬 💻 HKMU Department of Applied Science Gateway Hub",
@@ -541,7 +546,7 @@ translations = {
         "ev_header": "📅 2026-2027 Future Tech Events / Contests / Helper Radar",
         "current_major_prefix": "🎓 Locked Major Direction: ",
         "no_job_match": "⚠️ No jobs matched your exact criteria. Unrelated data has been hidden as requested. Please try adjusting your search terms.",
-        "no_ev_match": "⚠️ No events matched your major and keyword criteria.",
+        "no_ev_match": "⚠️ No valid upcoming events matched your major and keyword criteria.",
         "job_desc_head": "📝 Job Description",
         "job_req_head": "🎯 Key Requirements",
         "link_btn_job": "🌐 View [{company}] Right-Side Job Detail on JobsDB ➔",
@@ -549,9 +554,9 @@ translations = {
         "hist_job_title": "📋 Recorded Jobs List",
         "hist_ev_title": "🎉 Recorded Future Events List",
         "hist_job_empty": "🔍 No job records found. Search in Tab 1 to record new items.",
-        "hist_ev_empty": "🔍 No event records found. Search in Tab 2 to record new items.",
+        "hist_ev_empty": "🔍 No upcoming event records found. Search in Tab 2 to record.",
         "hist_job_metric": "Total Unique Jobs",
-        "hist_ev_metric": "Total Unique Events"
+        "hist_ev_metric": "Total Upcoming Events"
     }
 }
 
@@ -650,9 +655,9 @@ with tab2:
                 
                 if new_ev_count > 0:
                     st.toast(f"成功录入 {new_ev_count} 个未来新活动！")
-                    st.success(f"🎉 ({lang}) 呈现 **{len(live_scanned_events)}** 个完全对齐的活动情报，其中 **{new_ev_count}** 个已吸纳进 List！")
+                    st.success(f"🎉 ({lang}) 呈现 **{len(live_scanned_events)}** 个完全对齐的未过期活动，其中 **{new_ev_count}** 个已吸纳进 List！")
                 else:
-                    st.info(f"ℹ️ ({lang}) 呈现 **{len(live_scanned_events)}** 个与当前专业完全对齐的活动，已同步至 List。")
+                    st.info(f"ℹ️ ({lang}) 呈现 **{len(live_scanned_events)}** 个与当前专业对齐的未过期活动，已同步至 List。")
                     
                 for idx, ev in enumerate(live_scanned_events, 1):
                     fingerprint = f"{ev.get('title','')}_{ev.get('date', '')}"
@@ -691,9 +696,23 @@ with tab3:
     with c_event_book:
         st.subheader(lang_dict["hist_ev_title"])
         all_recorded_events = load_local_data(EVENT_DB)
+        current_date_str = datetime.now().strftime("%Y-%m-%d") # 获取今天日期
         
-        if "computer" not in active_major_keyword and "show all" not in active_major_keyword:
-            all_recorded_events = [ev for ev in all_recorded_events if isinstance(ev, dict) and "ctf" not in ev.get('title','').lower() and "cybersecurity" not in ev.get('title','').lower()]
+        valid_recorded_events = []
+        for ev in all_recorded_events:
+            if isinstance(ev, dict):
+                # 🌟 核心剔除机制：哪怕之前被记录了，一旦日期小于今天，就不在历史账单中显示
+                if ev.get('date', '') < current_date_str:
+                    continue
+                
+                # 专业防污染隔离
+                if "computer" not in active_major_keyword and "show all" not in active_major_keyword:
+                    if "ctf" in ev.get('title','').lower() or "cybersecurity" in ev.get('title','').lower():
+                        continue
+                
+                valid_recorded_events.append(ev)
+                
+        all_recorded_events = valid_recorded_events
 
         if not all_recorded_events:
             st.info(lang_dict["hist_ev_empty"])
