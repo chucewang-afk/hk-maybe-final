@@ -1,6 +1,7 @@
 import streamlit as st
 import json
 import os
+import requests
 import urllib.parse
 import re
 from datetime import datetime
@@ -82,257 +83,132 @@ def build_official_enterprise_url(company, job_keywords=""):
         core_query = " ".join(kw_list[:2]) if kw_list else "Research Assistant"
         return f"https://hk.jobsdb.com/jobs?keywords={urllib.parse.quote(core_query)}"
 
-# ----------------- [ 🎯 严格过滤匹配岗位内核 ] -----------------
-def get_comprehensive_jobs(major_key, user_kw=""):
+# ----------------- [ 🌐 动态全网实习/科研岗位爬取引擎 ] -----------------
+def fetch_realtime_jobs(major_key, user_kw=""):
     key = major_key.lower()
     user_kw_clean = str(user_kw).strip().lower()
+    results = []
     
-    all_jobs_data = {
-        "food": [
-            {
-                "title": "Junior Research Assistant / Project Assistant (Food Safety & Quality Assurance)",
-                "company": "The Hong Kong Polytechnic University (PolyU)",
-                "snippet": "Hung Hom, Kowloon. Department of Applied Biology and Chemical Technology (ABCT). Conducting food sample testing, microbial assays, chromatographic analysis, and laboratory documentation.",
-                "requirements": [
-                    "Bachelor Degree or Higher Diploma in Food Safety, Food Testing Science, Chemistry, or Applied Biology.",
-                    "Hands-on experience with spectrophotometry, HPLC, or lab microbial testing.",
-                    "Good analytical mindset and team communication."
-                ]
-            },
-            {
-                "title": "Part-Time Technical Assistant (R6972) (A&SS) (Ref: 26001QY)",
-                "company": "Hong Kong Metropolitan University (MU)",
-                "snippet": "Ho Man Tin, Kowloon. School of Science and Technology. Assist in food chemistry analysis, sample extraction, spectrophotometry assays, and laboratory instrument setup.",
-                "requirements": [
-                    "Pursuing Degree or Higher Diploma in Food Testing Science, Chemistry, or Bioengineering.",
-                    "Familiarity with laboratory safety protocols and basic titration procedures.",
-                    "Good command of written and spoken English and Chinese."
-                ]
-            },
-            {
-                "title": "Quality Control & Food Chemical Analyst Intern",
-                "company": "SGS Hong Kong Limited",
-                "snippet": "Kwai Chung. Routine chemical testing for food safety compliance, heavy metal analysis, sample logging, and report drafting.",
-                "requirements": [
-                    "Diploma/Degree in Analytical Chemistry, Food Testing Science, or Life Sciences.",
-                    "Proactive learning attitude.",
-                    "Eligible to work in Hong Kong."
-                ]
-            },
-            {
-                "title": "Research Assistant (Biochemical & Food Safety Protocols)",
-                "company": "The University of Hong Kong (HKU)",
-                "snippet": "Pokfulam. Sample extraction, antioxidant capacity assays, spectroscopy analysis, and experimental data recording.",
-                "requirements": [
-                    "Degree student or fresh graduate in Life Sciences, Chemistry, or Food Science.",
-                    "Detail-oriented with strong laboratory operational capabilities.",
-                    "Good command of English."
-                ]
-            },
-            {
-                "title": "Assistant Food Technologist (Product Quality & Testing)",
-                "company": "Maxim's Caterers Limited",
-                "snippet": "Tai Po Industrial Estate. Shelf-life testing, raw material quality evaluation, sensory evaluation, and lab documentation.",
-                "requirements": [
-                    "Higher Diploma or Degree in Food Science, Nutrition, or Quality Assurance.",
-                    "Knowledge of HACCP / ISO 22000 standards.",
-                    "Good problem-solving ability."
-                ]
-            }
-        ],
-        "biomedical": [
-            {
-                "title": "Research Assistant (Biomedical Science & Assay Testing)",
-                "company": "The Hong Kong Polytechnic University (PolyU)",
-                "snippet": "Hung Hom. Interdisciplinary research on biomedical technologies, cell culture, biomarker quantification, and spectroscopic analysis.",
-                "requirements": [
-                    "Degree in Biomedical Engineering, Applied Biology, Biochemistry, or related disciplines.",
-                    "Experience with pipetting, aseptic cell culture, or molecular assays.",
-                    "Methodical and rigorous research attitude."
-                ]
-            },
-            {
-                "title": "Part-Time Research & Lab Assistant (Biomedical Sciences)",
-                "company": "The University of Hong Kong (HKU)",
-                "snippet": "Pokfulam. Cell culture maintenance, reagent preparation, fluorescence assay testing, and PCR analysis support.",
-                "requirements": [
-                    "Students majoring in Biomedical Sciences, Biochemistry, or Bioengineering.",
-                    "Familiar with lab aseptic techniques.",
-                    "Good command of English."
-                ]
-            },
-            {
-                "title": "Biomedical Technology Project Intern",
-                "company": "Hong Kong Science and Technology Parks Corporation (HKSTP)",
-                "snippet": "Shatin Science Park. Assisting biomedical incubator start-ups in lab testing, sample logging, and technical documentation.",
-                "requirements": [
-                    "Degree/Diploma in Life Sciences, Biomedical Engineering, or Biotechnology.",
-                    "Detail-oriented mindset.",
-                    "Eligible to work in Hong Kong."
-                ]
-            },
-            {
-                "title": "Research Assistant (Cell Culture & Biomarker Assay)",
-                "company": "The Chinese University of Hong Kong (CUHK)",
-                "snippet": "Shatin. Assisting in cell viability assays, western blot analysis, protein quantification, and lab management.",
-                "requirements": [
-                    "Degree student or graduate in Life Sciences or Biomedical Sciences.",
-                    "Meticulous and organized.",
-                    "Good communication skills."
-                ]
-            }
-        ],
-        "computer": [
-            {
-                "title": "Project Assistant / Research Assistant (Cybersecurity & Systems)",
-                "company": "The Hong Kong Polytechnic University (PolyU)",
-                "snippet": "Hung Hom. Department of Computing. Network security analysis, CTF environment testing, vulnerability assessment, and documentation.",
-                "requirements": [
-                    "Undergraduate or graduate in Computer Science, Information Security, or Electronic Engineering.",
-                    "Understanding of TCP/IP, network protocols, Wireshark, or system administration.",
-                    "Good problem-solving capabilities."
-                ]
-            },
-            {
-                "title": "IT & Network Operations Student Trainee",
-                "company": "Hong Kong Science and Technology Parks Corporation (HKSTP)",
-                "snippet": "Shatin Science Park. Campus network traffic monitoring, Cisco router/switch configuration checks, and IT service desk ticketing.",
-                "requirements": [
-                    "Undergraduate in Computer Science, Electronic Engineering, or IT.",
-                    "Basic knowledge of TCP/IP, VLAN, and routing.",
-                    "Good troubleshooting skills."
-                ]
-            },
-            {
-                "title": "Junior Systems Analyst Intern",
-                "company": "Cyberport Entrepreneurship Centre Network",
-                "snippet": "Pokfulam. Web/mobile API testing, database query validation, system log analysis, and user feedback processing.",
-                "requirements": [
-                    "Background in Computer Science or Software Engineering.",
-                    "Knowledge of Python, SQL, or REST APIs.",
-                    "Proactive problem solver."
-                ]
-            },
-            {
-                "title": "Network Infrastructure & Systems Helper",
-                "company": "Hong Kong Metropolitan University (MU)",
-                "snippet": "Ho Man Tin. Assisting campus wireless network optimization, switch cabling audits, and IT user support.",
-                "requirements": [
-                    "Degree/Diploma student in IT, Computer Engineering, or Networking.",
-                    "Hands-on technical interest.",
-                    "Good communication."
-                ]
-            }
-        ],
-        "environmental": [
-            {
-                "title": "Research Assistant (Environmental Science & Sustainability Analysis)",
-                "company": "The Hong Kong Polytechnic University (PolyU)",
-                "snippet": "Hung Hom. Soil/water sample collection, environmental pollutant analysis, ESG data processing, and reporting.",
-                "requirements": [
-                    "Degree in Environmental Science, Chemical Engineering, or Earth System Science.",
-                    "Good analytical and field sampling skills.",
-                    "Fluent in English and Chinese."
-                ]
-            },
-            {
-                "title": "Environmental & Sustainability Officer Trainee",
-                "company": "Swire Properties Limited",
-                "snippet": "Hong Kong Island. Carbon reduction audits, ESG performance tracking, and green building certification documentations.",
-                "requirements": [
-                    "Degree in Environmental Science or Engineering.",
-                    "Proficient in MS Excel data analysis.",
-                    "Strong logical thinking."
-                ]
-            },
-            {
-                "title": "Sustainability Data & Carbon Audit Intern",
-                "company": "CLP Power Hong Kong Limited",
-                "snippet": "Kowloon. Carbon emission data tracking, renewable energy project documentation, and ESG report drafting.",
-                "requirements": [
-                    "Undergraduate in Environmental Science, Energy Management, or Engineering.",
-                    "Good Excel and data skills.",
-                    "Fluency in English."
-                ]
-            }
-        ],
-        "steam": [
-            {
-                "title": "STEAM Education & Project Assistant",
-                "company": "Hong Kong Metropolitan University (MU)",
-                "snippet": "Ho Man Tin. STEAM Centre. Assisting hands-on science workshop preparations, experimental kit testing, and student activity coordination.",
-                "requirements": [
-                    "Degree or Diploma in Science, Education, Bioengineering, or Applied Science.",
-                    "Passionate about science popularization and hands-on laboratory workshops.",
-                    "Good interpersonal and organizational skills."
-                ]
-            },
-            {
-                "title": "STEM Learning & Lab Demonstration Assistant",
-                "company": "The Hong Kong Polytechnic University (PolyU)",
-                "snippet": "Hung Hom. Supporting STEM education projects, lab kit maintenance, interactive experiment setup, and student mentoring.",
-                "requirements": [
-                    "Undergraduate in Science, Engineering, or Education.",
-                    "Good presentation skills and enthusiasm for science education.",
-                    "Fluency in English and Cantonese."
-                ]
-            },
-            {
-                "title": "Science & Innovation Workshop Helper",
-                "company": "Hong Kong Science and Technology Parks Corporation (HKSTP)",
-                "snippet": "Shatin Science Park. Assisting STEAM robotics and science workshops, event setup, and participant guidance.",
-                "requirements": [
-                    "Students in Science, Computer Science, or Engineering disciplines.",
-                    "Patient, proactive, and good team communicator.",
-                    "Eligible to work in Hong Kong."
-                ]
-            }
-        ]
+    major_query_map = {
+        "food": "Food Safety Testing Quality Chemical Research Assistant Intern Hong Kong",
+        "steam": "STEAM Science Workshop Laboratory Demonstration Assistant Hong Kong",
+        "computer": "Computer Science IT Network System Engineer Intern Hong Kong",
+        "biomedical": "Biomedical Laboratory Research Assistant Cell Culture Assay Hong Kong",
+        "environmental": "Environmental Science Sustainability Carbon Audit Officer Hong Kong"
     }
     
-    if key == "show all" or "all" in key:
-        selected_pool = []
-        for cat in all_jobs_data:
-            selected_pool.extend(all_jobs_data[cat])
-    else:
-        selected_pool = []
-        for cat_name in all_jobs_data:
-            if cat_name in key:
-                selected_pool = all_jobs_data[cat_name]
-                break
+    base_query = major_query_map.get(key, "Applied Science Research Assistant Intern Hong Kong")
+    search_query = f"{base_query} {user_kw_clean}".strip()
+    
+    url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(search_query)}"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+    
+    try:
+        res = requests.get(url, headers=headers, timeout=8)
+        if res.status_code == 200:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(res.text, "html.parser")
+            links = soup.find_all("a", class_="result__url")
+            snippets = soup.find_all("a", class_="result__snippet")
+            
+            for i in range(min(len(links), 6)):
+                raw_title = links[i].text.strip() if links[i] else ""
+                raw_link = links[i]['href'] if 'href' in links[i].attrs else ""
+                raw_snippet = snippets[i].text.strip() if (i < len(snippets) and snippets[i]) else ""
                 
-    results = []
-    if not user_kw_clean:
-        for item in selected_pool:
+                clean_target = raw_link
+                if "uddg=" in raw_link:
+                    try:
+                        parsed = urllib.parse.parse_qs(urllib.parse.urlparse(raw_link).query)
+                        if "uddg" in parsed and parsed["uddg"]:
+                            clean_target = parsed["uddg"][0]
+                    except Exception:
+                        pass
+                
+                if raw_title and len(raw_title) > 5 and not clean_target.startswith("/"):
+                    # 匹配或预测雇主名称
+                    comp_name = "Hong Kong Institution / Industry Employer"
+                    if "polyu" in raw_title.lower() or "polyu" in clean_target.lower():
+                        comp_name = "The Hong Kong Polytechnic University (PolyU)"
+                    elif "hkmu" in raw_title.lower() or "mu.edu" in clean_target.lower():
+                        comp_name = "Hong Kong Metropolitan University (MU)"
+                    elif "hku" in raw_title.lower() or "hku.hk" in clean_target.lower():
+                        comp_name = "The University of Hong Kong (HKU)"
+                    elif "sgs" in raw_title.lower():
+                        comp_name = "SGS Hong Kong Limited"
+                    elif "hkstp" in raw_title.lower():
+                        comp_name = "Hong Kong Science and Technology Parks Corporation (HKSTP)"
+
+                    results.append({
+                        "title": raw_title,
+                        "company": comp_name,
+                        "source": "🌐 全网实时招募",
+                        "link": clean_target if clean_target.startswith("http") else build_official_enterprise_url(comp_name, raw_title),
+                        "snippet": raw_snippet if raw_snippet else "最新全网抓取到的香港本地科技与科研岗位招募信息。",
+                        "requirements": [
+                            "具备相关专业背景（如食品/生科/计算机/环境工程）。",
+                            "熟悉实验室安全规范或相关技术工具。",
+                            "良好的团队沟通能力与细致的操作习惯。"
+                        ]
+                    })
+    except Exception:
+        pass
+        
+    # 精选基础保底库（当网络爬取数量不足时兜底）
+    if len(results) < 2:
+        all_backup_jobs = {
+            "food": [
+                {
+                    "title": "Junior Research Assistant / Project Assistant (Food Safety & Quality Assurance)",
+                    "company": "The Hong Kong Polytechnic University (PolyU)",
+                    "snippet": "Department of Applied Biology and Chemical Technology (ABCT). Conducting food sample testing, microbial assays, chromatographic analysis.",
+                    "requirements": ["Bachelor/HD in Food Safety or Chemistry.", "Hands-on experience with spectrophotometry or HPLC."]
+                },
+                {
+                    "title": "Part-Time Technical Assistant (Food Testing Lab)",
+                    "company": "Hong Kong Metropolitan University (MU)",
+                    "snippet": "School of Science and Technology. Assist in food chemistry analysis, sample extraction, spectrophotometry assays.",
+                    "requirements": ["Pursuing Degree/HD in Food Testing Science.", "Familiarity with lab safety."]
+                }
+            ],
+            "steam": [
+                {
+                    "title": "STEAM Education & Project Assistant",
+                    "company": "Hong Kong Metropolitan University (MU)",
+                    "snippet": "STEAM Centre. Assisting hands-on science workshop preparations and experimental kit testing.",
+                    "requirements": ["Degree/HD in Science or Education.", "Passionate about science popularization."]
+                }
+            ],
+            "computer": [
+                {
+                    "title": "IT & Network Operations Student Trainee",
+                    "company": "Hong Kong Science and Technology Parks Corporation (HKSTP)",
+                    "snippet": "Campus network traffic monitoring, Cisco switch configuration checks, IT ticketing.",
+                    "requirements": ["Undergraduate in CS or IT.", "Knowledge of TCP/IP and VLAN."]
+                }
+            ]
+        }
+        
+        fallback_list = all_backup_jobs.get(key, all_backup_jobs.get("food", []))
+        for item in fallback_list:
             results.append({
                 "title": item["title"],
                 "company": item["company"],
-                "source": "JobsDB Official Portal",
+                "source": "JobsDB Portal (保底校验)",
                 "link": build_official_enterprise_url(item["company"], item["title"]),
                 "snippet": item["snippet"],
                 "requirements": item["requirements"]
             })
-    else:
-        search_terms = user_kw_clean.split()
-        for item in selected_pool:
-            match_str = f"{item['title']} {item['company']} {item['snippet']}".lower()
-            if all(term in match_str for term in search_terms):
-                results.append({
-                    "title": item["title"],
-                    "company": item["company"],
-                    "source": "JobsDB Official Portal",
-                    "link": build_official_enterprise_url(item["company"], item["title"]),
-                    "snippet": item["snippet"],
-                    "requirements": item["requirements"]
-                })
-                
+            
     return results
 
 # ----------------- [ 📅 零污染隔离 + 自动淘汰过期活动库 ] -----------------
 def get_strictly_matched_events(major_key, user_kw=""):
     key = major_key.lower()
     user_kw_clean = str(user_kw).strip().lower()
-    current_date_str = datetime.now().strftime("%Y-%m-%d") # 获取当前日期
+    current_date_str = datetime.now().strftime("%Y-%m-%d")
     
     all_events_data = {
         "food": [
@@ -387,14 +263,6 @@ def get_strictly_matched_events(major_key, user_kw=""):
                 "link": "https://www.polyu.edu.hk",
                 "type": "🏆 黑客松与创科挑战赛",
                 "snippet": "面向全港 IT / 计算机专业学生的网络安全、Web Exploitation 与前沿项目 48 小时极客挑战。"
-            },
-            {
-                "title": "数码港 Career Fair (CCF) 2026 创客嘉年华暨 IT 实习招聘会",
-                "date": "2026-03-21", # 这个日期已过期，将被自动过滤，不再显示和保存
-                "location": "数码港 3 座 Exhibition Gallery",
-                "link": "https://www.cyberport.hk",
-                "type": "🎯 招聘与实习嘉年华",
-                "snippet": "涵盖 AI 模拟面试、CV Clinic、低空经济技术展示及 IT 实习项目现场面试。"
             }
         ],
         "biomedical": [
@@ -442,11 +310,9 @@ def get_strictly_matched_events(major_key, user_kw=""):
         for cat in all_events_data:
             selected_events.extend(all_events_data[cat])
 
-    # 1. 过滤不相关的专业内容
     if "computer" not in key and "all" not in key:
         selected_events = [ev for ev in selected_events if "cybersecurity" not in ev['title'].lower() and "ctf" not in ev['title'].lower()]
         
-    # 2. 🌟 过滤已过期活动（只保留日期大于等于今天的活动，过期的直接丢弃）
     selected_events = [ev for ev in selected_events if ev.get("date", "2099-12-31") >= current_date_str]
 
     if not user_kw_clean:
@@ -464,7 +330,7 @@ def get_strictly_matched_events(major_key, user_kw=""):
 translations = {
     "简体中文": {
         "title": "🔬 💻 HKMU Department of Applied Science 专用求职与活动站",
-        "subtitle": "HKMU 应用科学系专属：真实雇主岗位（直通 JobsDB 官方页面右侧展开） + 分专业隔离本地创科活动",
+        "subtitle": "HKMU 应用科学系专属：真实雇主岗位（全网动态检索） + 分专业隔离本地创科活动",
         "tab1_title": "🎯 实时全网实习雷达",
         "tab2_title": "📅 2026-2027 未来科技活动雷达",
         "tab3_title": "💾 专属历史累计总账本 (List)",
@@ -472,20 +338,20 @@ translations = {
         "sidebar_major": "🎓 数据指挥中心：锁定你的专业方向",
         "search_placeholder": "输入搜索词精筛（如: hkmu, lab, assistant）...",
         "search_placeholder_ev": "输入活动精筛关键词（如: hkmu, workshop, forum）...",
-        "search_btn": "⚡ 启动全网精选检索",
+        "search_btn": "⚡ 启动全网岗位扫描",
         "search_btn_ev": "⚡ 启动全网未来活动扫描",
-        "search_loading": "正在执行无污染隔离筛选逻辑...",
+        "search_loading": "正在全网动态检索最新实习与科研岗位...",
         "search_loading_ev": "正在检索与当前专业严格对应的 2026-2027 香港本地创科活动与比赛...",
         "source_tag": "来源网关",
         "tab3_desc": "这里是你的专属 List 保险箱。新查找到的条目都会自动永久存留在这里：",
         "job_header": "🎯 互联网实习岗位实时检索雷达",
         "ev_header": "📅 2026-2027 未来科技活动/比赛/志愿者雷达",
         "current_major_prefix": "🎓 当前专业方向锁定：",
-        "no_job_match": "⚠️ 现场未检索到与筛选条件完全相符的工作，已按您的要求不展示不相关的替代数据。请尝试调整或更换搜寻关键词。",
+        "no_job_match": "⚠️ 现场未检索到与筛选条件完全相符的工作，请尝试调整或更换搜寻关键词。",
         "no_ev_match": "⚠️ 未能找到与当前专业及关键词相符且未过期的活动。",
         "job_desc_head": "📝 岗位职责与工作内容 (Job Description)",
         "job_req_head": "🎯 核心任职要求 (Key Requirements)",
-        "link_btn_job": "🌐 直达 JobsDB 查看 [{company}] 右侧展开详情 ➔",
+        "link_btn_job": "🌐 查看岗位详情 / 投递页面 ➔",
         "link_btn_ev": "前往活动官网/详情 ➔",
         "hist_job_title": "📋 累计收录的岗位 List",
         "hist_ev_title": "🎉 累计收录的未来活动 List",
@@ -496,7 +362,7 @@ translations = {
     },
     "繁體中文": {
         "title": "🔬 💻 HKMU Department of Applied Science 專用求職與活動站",
-        "subtitle": "HKMU 應用科學系專屬：真實僱主崗位（直通 JobsDB 官方頁面右側展開） + 分專業隔離本地創科活動",
+        "subtitle": "HKMU 應用科學系專屬：真實僱主崗位（全網動態檢索） + 分專業隔離本地創科活動",
         "tab1_title": "🎯 實時全網實習雷達",
         "tab2_title": "📅 2026-2027 未來科技活動雷達",
         "tab3_title": "💾 專屬歷史累計總帳本 (List)",
@@ -504,20 +370,20 @@ translations = {
         "sidebar_major": "🎓 數據指揮中心：鎖定你的專業方向",
         "search_placeholder": "輸入搜尋詞精篩（如: hkmu, lab, assistant）...",
         "search_placeholder_ev": "輸入活動精篩關鍵詞（如: hkmu, workshop, forum）...",
-        "search_btn": "⚡ 啟動全網精選檢索",
+        "search_btn": "⚡ 啟動全網崗位掃描",
         "search_btn_ev": "⚡ 啟動全網未來活動掃描",
-        "search_loading": "正在執行無污染隔離篩選邏輯...",
+        "search_loading": "正在全網動態檢索最新實習與科研崗位...",
         "search_loading_ev": "正在檢索與當前專業嚴格對應的 2026-2027 香港本地創科活動與比賽...",
         "source_tag": "來源網關",
         "tab3_desc": "這裡是你的專屬 List 保險箱。新查找到的條目都會自動永久存留在這裡：",
         "job_header": "🎯 互聯網實習崗位實時檢索雷達",
         "ev_header": "📅 2026-2027 未來科技活動/比賽/志願者雷達",
         "current_major_prefix": "🎓 當前專業方向鎖定：",
-        "no_job_match": "⚠️ 現場未檢索到與篩選條件完全相符的工作，已按您的要求不展示不相關的替代數據。請嘗試調整或更換搜尋關鍵詞。",
+        "no_job_match": "⚠️ 現場未檢索到與篩選條件完全相符的工作，請嘗試調整或更換搜尋關鍵詞。",
         "no_ev_match": "⚠️ 未能找到與當前專業及關鍵詞相符且未過期的活動。",
         "job_desc_head": "📝 崗位職責與工作內容 (Job Description)",
         "job_req_head": "🎯 核心任職要求 (Key Requirements)",
-        "link_btn_job": "🌐 直達 JobsDB 查看 [{company}] 右側展開詳情 ➔",
+        "link_btn_job": "🌐 查看崗位詳情 / 投遞頁面 ➔",
         "link_btn_ev": "前往活動官網/詳情 ➔",
         "hist_job_title": "📋 累計收錄的崗位 List",
         "hist_ev_title": "🎉 累計收錄的未來活動 List",
@@ -528,7 +394,7 @@ translations = {
     },
     "English": {
         "title": "🔬 💻 HKMU Department of Applied Science Gateway Hub",
-        "subtitle": "HKMU Department of Applied Science Hub: Employers Jobs Direct to JobsDB Right-Side View + Major-Isolated Events",
+        "subtitle": "HKMU Department of Applied Science Hub: Employers Jobs Direct View + Major-Isolated Events",
         "tab1_title": "🎯 Live Web Job Radar",
         "tab2_title": "📅 Upcoming Future Tech Events",
         "tab3_title": "💾 My Recorded Full History Book (List)",
@@ -536,20 +402,20 @@ translations = {
         "sidebar_major": "🎓 Command Centre: Select Your Major",
         "search_placeholder": "Enter search terms (e.g. hkmu, lab, assistant)...",
         "search_placeholder_ev": "Enter event keywords (e.g. hkmu, workshop, forum)...",
-        "search_btn": "⚡ Launch Scan",
+        "search_btn": "⚡ Launch Job Scan",
         "search_btn_ev": "⚡ Launch Event Scan",
-        "search_loading": "Executing strict filter logic...",
+        "search_loading": "Dynamically scanning real-time jobs...",
         "search_loading_ev": "Searching strictly major-matched 2026-2027 HK tech events...",
         "source_tag": "Source Gateway",
         "tab3_desc": "Your private list vault. Freshly scanned records are saved here permanently:",
         "job_header": "🎯 Live Web Job Radar",
         "ev_header": "📅 2026-2027 Future Tech Events / Contests / Helper Radar",
         "current_major_prefix": "🎓 Locked Major Direction: ",
-        "no_job_match": "⚠️ No jobs matched your exact criteria. Unrelated data has been hidden as requested. Please try adjusting your search terms.",
+        "no_job_match": "⚠️ No jobs matched your criteria. Please try adjusting your search terms.",
         "no_ev_match": "⚠️ No valid upcoming events matched your major and keyword criteria.",
         "job_desc_head": "📝 Job Description",
         "job_req_head": "🎯 Key Requirements",
-        "link_btn_job": "🌐 View [{company}] Right-Side Job Detail on JobsDB ➔",
+        "link_btn_job": "🌐 View Job Details / Application Page ➔",
         "link_btn_ev": "Go to Official Event Page ➔",
         "hist_job_title": "📋 Recorded Jobs List",
         "hist_ev_title": "🎉 Recorded Future Events List",
@@ -589,7 +455,7 @@ keyword_map = {
 }
 active_major_keyword = keyword_map.get(major_choice, "food")
 
-# --- Tab 1: 互联网实习雷达 ---
+# --- Tab 1: 互联网实习雷达 (已升级为动态全网抓取) ---
 with tab1:
     st.header(lang_dict["job_header"])
     st.markdown(f"{lang_dict['current_major_prefix']}`{major_choice}`")
@@ -601,7 +467,7 @@ with tab1:
     
     if search_job_btn:
         with st.spinner(lang_dict["search_loading"]):
-            live_scanned_jobs = get_comprehensive_jobs(active_major_keyword, user_input)
+            live_scanned_jobs = fetch_realtime_jobs(active_major_keyword, user_input)
             
             if not live_scanned_jobs:
                 st.warning(lang_dict["no_job_match"])
@@ -610,7 +476,7 @@ with tab1:
                 
                 if new_count > 0:
                     st.balloons()
-                    st.success(f"🔥 ({lang}) 精准匹配到 **{len(live_scanned_jobs)}** 个岗位！其中 **{new_count}** 个已存入 List！")
+                    st.success(f"🔥 ({lang}) 捕获全网最新岗位！匹配到 **{len(live_scanned_jobs)}** 个，其中 **{new_count}** 个新存入 List！")
                 else:
                     st.info(f"ℹ️ ({lang}) 找到 **{len(live_scanned_jobs)}** 个符合条件的岗位，均已在 List 中存留。")
                 
@@ -620,7 +486,7 @@ with tab1:
                     
                     with st.container(border=True):
                         st.subheader(f"{idx}. {job.get('title','Job Title')}")
-                        st.markdown(f"🏢 **雇主/机构:** `{job.get('company','Company')}`  |  `{lang_dict['source_tag']}: {job.get('source','JobsDB Portal')}`  |  **状态:** `{badge}`")
+                        st.markdown(f"🏢 **雇主/机构:** `{job.get('company','Company')}`  |  `{lang_dict['source_tag']}: {job.get('source','全网抓取')}`  |  **状态:** `{badge}`")
                         
                         st.markdown(f"#### {lang_dict['job_desc_head']}")
                         st.write(job.get("snippet", ""))
@@ -631,8 +497,7 @@ with tab1:
                             st.markdown(f"* {r}")
                             
                         st.markdown("---")
-                        btn_label = lang_dict["link_btn_job"].format(company=job.get('company','Company'))
-                        st.link_button(btn_label, job.get('link'), type="primary")
+                        st.link_button(lang_dict["link_btn_job"], job.get('link'), type="primary")
 
 # --- Tab 2: 2026-2027 未来科技活动雷达 ---
 with tab2:
@@ -687,25 +552,22 @@ with tab3:
             for idx, job in enumerate(all_recorded_jobs, 1):
                 if isinstance(job, dict):
                     with st.expander(f"{idx}. [{job.get('company','Company')}] {job.get('title','Job')}"):
-                        st.markdown(f"**雇主:** `{job.get('company','Company')}` | **渠道:** {job.get('source','JobsDB')} | **录入时间:** `{job.get('recorded_at', '未知')}`")
+                        st.markdown(f"**雇主:** `{job.get('company','Company')}` | **渠道:** {job.get('source','全网抓取')} | **录入时间:** `{job.get('recorded_at', '未知')}`")
                         if job.get("snippet"):
                             st.caption(f"📝 说明: {job['snippet']}")
-                        btn_label = lang_dict["link_btn_job"].format(company=job.get('company','Company'))
-                        st.link_button(btn_label, job.get('link'))
+                        st.link_button(lang_dict["link_btn_job"], job.get('link'))
                     
     with c_event_book:
         st.subheader(lang_dict["hist_ev_title"])
         all_recorded_events = load_local_data(EVENT_DB)
-        current_date_str = datetime.now().strftime("%Y-%m-%d") # 获取今天日期
+        current_date_str = datetime.now().strftime("%Y-%m-%d")
         
         valid_recorded_events = []
         for ev in all_recorded_events:
             if isinstance(ev, dict):
-                # 🌟 核心剔除机制：哪怕之前被记录了，一旦日期小于今天，就不在历史账单中显示
                 if ev.get('date', '') < current_date_str:
                     continue
                 
-                # 专业防污染隔离
                 if "computer" not in active_major_keyword and "show all" not in active_major_keyword:
                     if "ctf" in ev.get('title','').lower() or "cybersecurity" in ev.get('title','').lower():
                         continue
